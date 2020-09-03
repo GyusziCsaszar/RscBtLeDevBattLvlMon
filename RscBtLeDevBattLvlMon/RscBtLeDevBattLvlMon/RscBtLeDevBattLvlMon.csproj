@@ -8,7 +8,14 @@
   
   <PropertyGroup>
     <TargetPlatformVersion>8.0</TargetPlatformVersion>
+    <ApplicationIcon></ApplicationIcon>
   </PropertyGroup>
+  
+  <ItemGroup>
+    <Compile Remove="Properties\**" />
+    <EmbeddedResource Remove="Properties\**" />
+    <None Remove="Properties\**" />
+  </ItemGroup>
   
   <ItemGroup>
     <Reference Include="Windows">

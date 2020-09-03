@@ -31,6 +31,9 @@
             this.btnEnum = new System.Windows.Forms.Button();
             this.lbLog = new System.Windows.Forms.ListBox();
             this.btnStop = new System.Windows.Forms.Button();
+            this.lvDevices = new System.Windows.Forms.ListView();
+            this.chbAutoStopOnEnumComp = new System.Windows.Forms.CheckBox();
+            this.btnTogleIcon = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // btnEnum
@@ -50,9 +53,9 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.lbLog.FormattingEnabled = true;
             this.lbLog.ItemHeight = 15;
-            this.lbLog.Location = new System.Drawing.Point(12, 41);
+            this.lbLog.Location = new System.Drawing.Point(12, 296);
             this.lbLog.Name = "lbLog";
-            this.lbLog.Size = new System.Drawing.Size(515, 394);
+            this.lbLog.Size = new System.Drawing.Size(755, 139);
             this.lbLog.TabIndex = 1;
             // 
             // btnStop
@@ -66,18 +69,57 @@
             this.btnStop.UseVisualStyleBackColor = true;
             this.btnStop.Click += new System.EventHandler(this.btnStop_Click);
             // 
+            // lvDevices
+            // 
+            this.lvDevices.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.lvDevices.HideSelection = false;
+            this.lvDevices.Location = new System.Drawing.Point(12, 56);
+            this.lvDevices.Name = "lvDevices";
+            this.lvDevices.Size = new System.Drawing.Size(755, 221);
+            this.lvDevices.TabIndex = 3;
+            this.lvDevices.UseCompatibleStateImageBehavior = false;
+            this.lvDevices.View = System.Windows.Forms.View.Details;
+            // 
+            // chbAutoStopOnEnumComp
+            // 
+            this.chbAutoStopOnEnumComp.AutoSize = true;
+            this.chbAutoStopOnEnumComp.Location = new System.Drawing.Point(232, 15);
+            this.chbAutoStopOnEnumComp.Name = "chbAutoStopOnEnumComp";
+            this.chbAutoStopOnEnumComp.RightToLeft = System.Windows.Forms.RightToLeft.No;
+            this.chbAutoStopOnEnumComp.Size = new System.Drawing.Size(244, 19);
+            this.chbAutoStopOnEnumComp.TabIndex = 4;
+            this.chbAutoStopOnEnumComp.Text = "Auto stop when enumeration completed.";
+            this.chbAutoStopOnEnumComp.UseVisualStyleBackColor = true;
+            // 
+            // btnTogleIcon
+            // 
+            this.btnTogleIcon.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnTogleIcon.Location = new System.Drawing.Point(608, 12);
+            this.btnTogleIcon.Name = "btnTogleIcon";
+            this.btnTogleIcon.Size = new System.Drawing.Size(159, 23);
+            this.btnTogleIcon.TabIndex = 5;
+            this.btnTogleIcon.Text = "Togle Notification Icon";
+            this.btnTogleIcon.UseVisualStyleBackColor = true;
+            this.btnTogleIcon.Click += new System.EventHandler(this.btnTogleIcon_Click);
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(539, 450);
+            this.ClientSize = new System.Drawing.Size(779, 450);
+            this.Controls.Add(this.btnTogleIcon);
+            this.Controls.Add(this.chbAutoStopOnEnumComp);
+            this.Controls.Add(this.lvDevices);
             this.Controls.Add(this.btnStop);
             this.Controls.Add(this.lbLog);
             this.Controls.Add(this.btnEnum);
             this.Name = "FormMain";
             this.Text = "FormMain";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FormMain_FormClosing);
             this.Shown += new System.EventHandler(this.FormMain_Shown);
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
@@ -86,6 +128,9 @@
         private System.Windows.Forms.Button btnEnum;
         private System.Windows.Forms.ListBox lbLog;
         private System.Windows.Forms.Button btnStop;
+        private System.Windows.Forms.ListView lvDevices;
+        private System.Windows.Forms.CheckBox chbAutoStopOnEnumComp;
+        private System.Windows.Forms.Button btnTogleIcon;
     }
 }
 
