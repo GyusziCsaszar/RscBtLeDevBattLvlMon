@@ -362,10 +362,7 @@ namespace RscBtLeDevBattLvlMon
 
             tmrUpdate.Enabled = false;
 
-            foreach (BtLeDevInfo btLeDevInfoItem in s_MainForm.m_aDevices)
-            {
-                BeginQueryBtLeDevice(btLeDevInfoItem);
-            }
+            UpdateNotifyIconsNow();
 
             if (!s_bCloseApp)
             {
@@ -373,7 +370,22 @@ namespace RscBtLeDevBattLvlMon
             }
         }
 
-        public void BeginQueryBtLeDevice(BtLeDevInfo btLeDevInfo)
+        private bool UpdateNotifyIconsNow()
+        {
+            bool bHasIcon = false;
+
+            foreach (BtLeDevInfo btLeDevInfoItem in s_MainForm.m_aDevices)
+            {
+                if (BeginQueryBtLeDevice(btLeDevInfoItem))
+                {
+                    bHasIcon = true;
+                }
+            }
+
+            return bHasIcon;
+        }
+
+        public bool BeginQueryBtLeDevice(BtLeDevInfo btLeDevInfo)
         {
             if (btLeDevInfo.BatteryLevel != 0 && btLeDevInfo.ShowNotifyIcon)
             {
@@ -413,7 +425,11 @@ namespace RscBtLeDevBattLvlMon
 
                     if (s_Log) LogMessage("DEBUG -> STARTED QueryBtLeDevice_Known_Async...");
                 }
+
+                return true;
             }
+
+            return false;
         }
 
         // BUG: Reported as Completed while NOT...
@@ -1722,6 +1738,14 @@ namespace RscBtLeDevBattLvlMon
         {
             s_bTestTaskDelay = chbDebugDelay.Checked;
         }
+
+        private void btnUpdateNow_Click(object sender, EventArgs e)
+        {
+            if (!UpdateNotifyIconsNow())
+            {
+                NewMsg(false /*bError*/, "There are no Notification Icon to Update!");
+            }
+        }
     }
 
     public enum BtLeDevInfo_Reason
@@ -1825,7 +1849,7 @@ namespace RscBtLeDevBattLvlMon
                     }
                     else
                     {
-                        sStatus = "Inaccessible Device";
+                        sStatus = "NOT Connectible";
                     }
                 }
 
