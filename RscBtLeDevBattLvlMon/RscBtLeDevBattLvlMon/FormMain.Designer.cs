@@ -36,16 +36,19 @@
             this.chbAutoStopOnEnumComp = new System.Windows.Forms.CheckBox();
             this.btnTogleIcon = new System.Windows.Forms.Button();
             this.tmrUpdate = new System.Windows.Forms.Timer(this.components);
-            this.panMsg = new System.Windows.Forms.Panel();
+            this.btnInfoBar = new System.Windows.Forms.Button();
+            this.lblAlertLevel = new System.Windows.Forms.Label();
+            this.tbAlertLevel = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // btnEnum
             // 
-            this.btnEnum.Location = new System.Drawing.Point(12, 53);
+            this.btnEnum.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnEnum.Location = new System.Drawing.Point(12, 31);
             this.btnEnum.Name = "btnEnum";
-            this.btnEnum.Size = new System.Drawing.Size(132, 23);
+            this.btnEnum.Size = new System.Drawing.Size(160, 25);
             this.btnEnum.TabIndex = 0;
-            this.btnEnum.Text = "Enumerate";
+            this.btnEnum.Text = "Disvover devices";
             this.btnEnum.UseVisualStyleBackColor = true;
             this.btnEnum.Click += new System.EventHandler(this.btnEnum_Click);
             // 
@@ -54,33 +57,37 @@
             this.lbLog.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.lbLog.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.lbLog.FormattingEnabled = true;
             this.lbLog.ItemHeight = 15;
             this.lbLog.Location = new System.Drawing.Point(12, 296);
             this.lbLog.Name = "lbLog";
-            this.lbLog.Size = new System.Drawing.Size(755, 139);
+            this.lbLog.Size = new System.Drawing.Size(755, 137);
             this.lbLog.TabIndex = 1;
             // 
             // btnStop
             // 
             this.btnStop.Enabled = false;
-            this.btnStop.Location = new System.Drawing.Point(150, 53);
+            this.btnStop.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnStop.Location = new System.Drawing.Point(178, 31);
             this.btnStop.Name = "btnStop";
-            this.btnStop.Size = new System.Drawing.Size(75, 23);
+            this.btnStop.Size = new System.Drawing.Size(75, 25);
             this.btnStop.TabIndex = 2;
             this.btnStop.Text = "Stop";
             this.btnStop.UseVisualStyleBackColor = true;
+            this.btnStop.Visible = false;
             this.btnStop.Click += new System.EventHandler(this.btnStop_Click);
             // 
             // lvDevices
             // 
             this.lvDevices.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.lvDevices.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.lvDevices.FullRowSelect = true;
             this.lvDevices.HideSelection = false;
-            this.lvDevices.Location = new System.Drawing.Point(12, 95);
+            this.lvDevices.Location = new System.Drawing.Point(12, 109);
             this.lvDevices.Name = "lvDevices";
-            this.lvDevices.Size = new System.Drawing.Size(755, 182);
+            this.lvDevices.Size = new System.Drawing.Size(755, 168);
             this.lvDevices.TabIndex = 3;
             this.lvDevices.UseCompatibleStateImageBehavior = false;
             this.lvDevices.View = System.Windows.Forms.View.Details;
@@ -90,48 +97,78 @@
             this.chbAutoStopOnEnumComp.AutoSize = true;
             this.chbAutoStopOnEnumComp.Checked = true;
             this.chbAutoStopOnEnumComp.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chbAutoStopOnEnumComp.Location = new System.Drawing.Point(232, 56);
+            this.chbAutoStopOnEnumComp.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.chbAutoStopOnEnumComp.Location = new System.Drawing.Point(12, 71);
             this.chbAutoStopOnEnumComp.Name = "chbAutoStopOnEnumComp";
             this.chbAutoStopOnEnumComp.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.chbAutoStopOnEnumComp.Size = new System.Drawing.Size(244, 19);
+            this.chbAutoStopOnEnumComp.Size = new System.Drawing.Size(260, 19);
             this.chbAutoStopOnEnumComp.TabIndex = 4;
-            this.chbAutoStopOnEnumComp.Text = "Auto stop when enumeration completed.";
+            this.chbAutoStopOnEnumComp.Text = "Auto stop when device discovery completed.";
             this.chbAutoStopOnEnumComp.UseVisualStyleBackColor = true;
             // 
             // btnTogleIcon
             // 
             this.btnTogleIcon.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnTogleIcon.Location = new System.Drawing.Point(608, 53);
+            this.btnTogleIcon.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnTogleIcon.Location = new System.Drawing.Point(532, 31);
             this.btnTogleIcon.Name = "btnTogleIcon";
-            this.btnTogleIcon.Size = new System.Drawing.Size(159, 23);
+            this.btnTogleIcon.Size = new System.Drawing.Size(235, 25);
             this.btnTogleIcon.TabIndex = 5;
-            this.btnTogleIcon.Text = "Togle Notification Icon";
+            this.btnTogleIcon.Text = "Toggle Notification Icon";
             this.btnTogleIcon.UseVisualStyleBackColor = true;
             this.btnTogleIcon.Click += new System.EventHandler(this.btnTogleIcon_Click);
             // 
             // tmrUpdate
             // 
-            this.tmrUpdate.Interval = 300;
+            this.tmrUpdate.Interval = 1000;
             this.tmrUpdate.Tick += new System.EventHandler(this.tmrUpdate_Tick);
             // 
-            // panMsg
+            // btnInfoBar
             // 
-            this.panMsg.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.panMsg.Location = new System.Drawing.Point(12, 13);
-            this.panMsg.Name = "panMsg";
-            this.panMsg.Size = new System.Drawing.Size(693, 34);
-            this.panMsg.TabIndex = 6;
+            this.btnInfoBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnInfoBar.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnInfoBar.Location = new System.Drawing.Point(0, 0);
+            this.btnInfoBar.Name = "btnInfoBar";
+            this.btnInfoBar.Size = new System.Drawing.Size(780, 25);
+            this.btnInfoBar.TabIndex = 6;
+            this.btnInfoBar.Text = "N/A";
+            this.btnInfoBar.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.btnInfoBar.UseVisualStyleBackColor = true;
+            this.btnInfoBar.Visible = false;
+            this.btnInfoBar.Click += new System.EventHandler(this.btnInfoBar_Click);
+            // 
+            // lblAlertLevel
+            // 
+            this.lblAlertLevel.AutoSize = true;
+            this.lblAlertLevel.Location = new System.Drawing.Point(532, 71);
+            this.lblAlertLevel.Name = "lblAlertLevel";
+            this.lblAlertLevel.Size = new System.Drawing.Size(65, 15);
+            this.lblAlertLevel.TabIndex = 7;
+            this.lblAlertLevel.Text = "Alert Level:";
+            // 
+            // tbAlertLevel
+            // 
+            this.tbAlertLevel.Location = new System.Drawing.Point(603, 70);
+            this.tbAlertLevel.MaxLength = 2;
+            this.tbAlertLevel.Name = "tbAlertLevel";
+            this.tbAlertLevel.Size = new System.Drawing.Size(68, 23);
+            this.tbAlertLevel.TabIndex = 8;
+            this.tbAlertLevel.TextChanged += new System.EventHandler(this.tbAlertLevel_TextChanged);
+            this.tbAlertLevel.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.tbAlertLevel_KeyPress);
             // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(779, 450);
-            this.Controls.Add(this.panMsg);
+            this.Controls.Add(this.tbAlertLevel);
+            this.Controls.Add(this.lblAlertLevel);
             this.Controls.Add(this.btnEnum);
+            this.Controls.Add(this.btnTogleIcon);
             this.Controls.Add(this.btnStop);
             this.Controls.Add(this.chbAutoStopOnEnumComp);
-            this.Controls.Add(this.btnTogleIcon);
+            this.Controls.Add(this.btnInfoBar);
             this.Controls.Add(this.lvDevices);
             this.Controls.Add(this.lbLog);
             this.Name = "FormMain";
@@ -152,7 +189,9 @@
         private System.Windows.Forms.CheckBox chbAutoStopOnEnumComp;
         private System.Windows.Forms.Button btnTogleIcon;
         private System.Windows.Forms.Timer tmrUpdate;
-        private System.Windows.Forms.Panel panMsg;
+        private System.Windows.Forms.Button btnInfoBar;
+        private System.Windows.Forms.Label lblAlertLevel;
+        private System.Windows.Forms.TextBox tbAlertLevel;
     }
 }
 
