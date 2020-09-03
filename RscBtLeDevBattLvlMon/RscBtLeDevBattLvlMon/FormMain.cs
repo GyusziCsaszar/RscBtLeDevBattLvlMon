@@ -159,6 +159,9 @@ namespace RscBtLeDevBattLvlMon
 
             tbAlertLevel.Text = m_iAlertLevel.ToString();
 
+            bool bAutoHide = StorageRegistry.Read("Devices\\App\\Auto Hide", false);
+            chbAutoHide.Checked = bAutoHide;
+
             bool bHasUpdateableDevice = false;
 
             int iDevRegCnt = StorageRegistry.Read("Devices\\DeviceCount", 0);
@@ -198,7 +201,7 @@ namespace RscBtLeDevBattLvlMon
             tmrUpdate.Enabled = bHasUpdateableDevice;
 
             // ATTN!
-            if (!bHasUpdateableDevice)
+            if ((!bHasUpdateableDevice) || (!bAutoHide))
             {
                 this.Visible = true;
             }
@@ -463,8 +466,10 @@ namespace RscBtLeDevBattLvlMon
                 bluetoothLeDevice.Dispose();
 
                 // DEBUG...
+                /*
                 if (s_Log) LogMessage("DEBUG -> await Task.Delay(8000);");
                 await Task.Delay(8000);
+                */
 
                 UpdateDevice(btLeDevInfo);
             }
@@ -1557,13 +1562,24 @@ namespace RscBtLeDevBattLvlMon
                 s_Log = true;
                 if (s_Log) LogMessage("LOG STARTED...");
 
-                // TODO...
+                lvDevices.Anchor = (AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right); // | AnchorStyles.Bottom);
+
+                int iCY = lvDevices.Height / 2;
+
+                lvDevices.Height = iCY;
+
+                lbLog.Height = iCY - 10;
+                lbLog.Top = lvDevices.Top + iCY + 10;
+
+                lbLog.Visible = true;
             }
             else
             {
                 s_Log = false;
 
                 // TODO...
+
+                lvDevices.Anchor = (AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right | AnchorStyles.Bottom);
             }
         }
 
@@ -1578,6 +1594,11 @@ namespace RscBtLeDevBattLvlMon
             }
 
             base.WndProc(ref m);
+        }
+
+        private void chbAutoHide_CheckedChanged(object sender, EventArgs e)
+        {
+            StorageRegistry.Write("Devices\\App\\Auto Hide", chbAutoHide.Checked);
         }
     }
 

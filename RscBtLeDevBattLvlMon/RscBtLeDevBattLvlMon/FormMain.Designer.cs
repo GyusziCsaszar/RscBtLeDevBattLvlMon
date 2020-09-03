@@ -40,6 +40,7 @@
             this.lblAlertLevel = new System.Windows.Forms.Label();
             this.tbAlertLevel = new System.Windows.Forms.TextBox();
             this.chbLog = new System.Windows.Forms.CheckBox();
+            this.chbAutoHide = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // btnEnum
@@ -65,6 +66,7 @@
             this.lbLog.Name = "lbLog";
             this.lbLog.Size = new System.Drawing.Size(755, 137);
             this.lbLog.TabIndex = 1;
+            this.lbLog.Visible = false;
             // 
             // btnStop
             // 
@@ -81,7 +83,8 @@
             // 
             // lvDevices
             // 
-            this.lvDevices.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.lvDevices.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.lvDevices.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.lvDevices.FullRowSelect = true;
@@ -89,7 +92,7 @@
             this.lvDevices.Location = new System.Drawing.Point(12, 114);
             this.lvDevices.MultiSelect = false;
             this.lvDevices.Name = "lvDevices";
-            this.lvDevices.Size = new System.Drawing.Size(755, 163);
+            this.lvDevices.Size = new System.Drawing.Size(755, 319);
             this.lvDevices.TabIndex = 3;
             this.lvDevices.UseCompatibleStateImageBehavior = false;
             this.lvDevices.View = System.Windows.Forms.View.Details;
@@ -142,6 +145,7 @@
             // 
             // lblAlertLevel
             // 
+            this.lblAlertLevel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.lblAlertLevel.AutoSize = true;
             this.lblAlertLevel.Location = new System.Drawing.Point(532, 64);
             this.lblAlertLevel.Name = "lblAlertLevel";
@@ -151,6 +155,7 @@
             // 
             // tbAlertLevel
             // 
+            this.tbAlertLevel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.tbAlertLevel.Location = new System.Drawing.Point(603, 61);
             this.tbAlertLevel.MaxLength = 2;
             this.tbAlertLevel.Name = "tbAlertLevel";
@@ -170,12 +175,25 @@
             this.chbLog.UseVisualStyleBackColor = true;
             this.chbLog.CheckedChanged += new System.EventHandler(this.chbLog_CheckedChanged);
             // 
+            // chbAutoHide
+            // 
+            this.chbAutoHide.AutoSize = true;
+            this.chbAutoHide.Location = new System.Drawing.Point(323, 62);
+            this.chbAutoHide.Name = "chbAutoHide";
+            this.chbAutoHide.Size = new System.Drawing.Size(146, 19);
+            this.chbAutoHide.TabIndex = 10;
+            this.chbAutoHide.Text = "Auto hide app window";
+            this.chbAutoHide.UseVisualStyleBackColor = true;
+            this.chbAutoHide.CheckedChanged += new System.EventHandler(this.chbAutoHide_CheckedChanged);
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Window;
             this.ClientSize = new System.Drawing.Size(779, 450);
+            this.Controls.Add(this.chbAutoHide);
+            this.Controls.Add(this.lbLog);
             this.Controls.Add(this.chbLog);
             this.Controls.Add(this.tbAlertLevel);
             this.Controls.Add(this.lblAlertLevel);
@@ -185,7 +203,6 @@
             this.Controls.Add(this.chbAutoStopOnEnumComp);
             this.Controls.Add(this.btnInfoBar);
             this.Controls.Add(this.lvDevices);
-            this.Controls.Add(this.lbLog);
             this.Name = "FormMain";
             this.Text = "FormMain";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FormMain_FormClosing);
@@ -208,6 +225,7 @@
         private System.Windows.Forms.Label lblAlertLevel;
         private System.Windows.Forms.TextBox tbAlertLevel;
         private System.Windows.Forms.CheckBox chbLog;
+        private System.Windows.Forms.CheckBox chbAutoHide;
     }
 }
 
