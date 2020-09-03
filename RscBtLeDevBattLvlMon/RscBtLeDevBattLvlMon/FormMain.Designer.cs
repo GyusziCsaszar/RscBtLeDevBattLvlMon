@@ -28,19 +28,20 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.btnQuery = new System.Windows.Forms.Button();
+            this.btnEnum = new System.Windows.Forms.Button();
             this.lbLog = new System.Windows.Forms.ListBox();
+            this.btnStop = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
-            // btnQuery
+            // btnEnum
             // 
-            this.btnQuery.Location = new System.Drawing.Point(12, 12);
-            this.btnQuery.Name = "btnQuery";
-            this.btnQuery.Size = new System.Drawing.Size(75, 23);
-            this.btnQuery.TabIndex = 0;
-            this.btnQuery.Text = "Query";
-            this.btnQuery.UseVisualStyleBackColor = true;
-            this.btnQuery.Click += new System.EventHandler(this.btnQuery_Click);
+            this.btnEnum.Location = new System.Drawing.Point(12, 12);
+            this.btnEnum.Name = "btnEnum";
+            this.btnEnum.Size = new System.Drawing.Size(132, 23);
+            this.btnEnum.TabIndex = 0;
+            this.btnEnum.Text = "Enumerate";
+            this.btnEnum.UseVisualStyleBackColor = true;
+            this.btnEnum.Click += new System.EventHandler(this.btnEnum_Click);
             // 
             // lbLog
             // 
@@ -54,13 +55,25 @@
             this.lbLog.Size = new System.Drawing.Size(515, 394);
             this.lbLog.TabIndex = 1;
             // 
+            // btnStop
+            // 
+            this.btnStop.Enabled = false;
+            this.btnStop.Location = new System.Drawing.Point(150, 12);
+            this.btnStop.Name = "btnStop";
+            this.btnStop.Size = new System.Drawing.Size(75, 23);
+            this.btnStop.TabIndex = 2;
+            this.btnStop.Text = "Stop";
+            this.btnStop.UseVisualStyleBackColor = true;
+            this.btnStop.Click += new System.EventHandler(this.btnStop_Click);
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(539, 450);
+            this.Controls.Add(this.btnStop);
             this.Controls.Add(this.lbLog);
-            this.Controls.Add(this.btnQuery);
+            this.Controls.Add(this.btnEnum);
             this.Name = "FormMain";
             this.Text = "FormMain";
             this.Shown += new System.EventHandler(this.FormMain_Shown);
@@ -70,8 +83,9 @@
 
         #endregion
 
-        private System.Windows.Forms.Button btnQuery;
+        private System.Windows.Forms.Button btnEnum;
         private System.Windows.Forms.ListBox lbLog;
+        private System.Windows.Forms.Button btnStop;
     }
 }
 
