@@ -81,6 +81,10 @@ namespace RscBtLeDevBattLvlMon
 
         public static bool s_Log = false;
 
+        public int m_iBottomGap = 0;
+
+        public static bool s_bTestTaskDelay = false;
+
         // SRC: https://stackoverflow.com/questions/5168249/c-showing-an-invisible-form
         // INFO: This ensures that the window doesn't become visible the first time you call Show().
         protected override void SetVisibleCore(bool value)
@@ -121,11 +125,7 @@ namespace RscBtLeDevBattLvlMon
 
             this.Left = /*Math.Max(0,*/ StorageRegistry.Read("FormMain\\Left", this.Left); //);
             this.Top = Math.Max(0, StorageRegistry.Read("FormMain\\Top", this.Top));
-
-            // Later...
-            /*
             this.Width = Math.Max(ciWIDTH_NORMAL, StorageRegistry.Read("FormMain\\Width", this.Width));
-            */
             this.Height = Math.Max(ciHEIGHT_NORMAL, StorageRegistry.Read("FormMain\\Height", this.Height));
 
             // ATTN!
@@ -157,10 +157,24 @@ namespace RscBtLeDevBattLvlMon
                 }
             }
 
-            tbAlertLevel.Text = m_iAlertLevel.ToString();
+            m_iAlertLevel = StorageRegistry.Read("Settings\\Alert Level", m_iAlertLevel);
+            if (m_iAlertLevel < 0)
+                tbAlertLevel.Text = "";
+            else
+                tbAlertLevel.Text = m_iAlertLevel.ToString();
 
-            bool bAutoHide = StorageRegistry.Read("Devices\\App\\Auto Hide", false);
+            int iInterval = StorageRegistry.Read("Settings\\Update Interval", tmrUpdate.Interval);
+            if (iInterval <= 0) iInterval = 1000; // 1 sec
+            if (iInterval != tmrUpdate.Interval) tmrUpdate.Interval = iInterval;
+            if (iInterval < (60 * 1000))
+                tbUpdateInterval.Text = "";
+            else
+                tbUpdateInterval.Text = (iInterval / (60 * 1000)).ToString();
+
+            bool bAutoHide = StorageRegistry.Read("Settings\\Auto Hide", false);
             chbAutoHide.Checked = bAutoHide;
+
+            chbAutoStart.Checked = IsAppStartWithWindowsOn();
 
             bool bHasUpdateableDevice = false;
 
@@ -273,7 +287,8 @@ namespace RscBtLeDevBattLvlMon
 
             if (bAppWasShown)
             {
-                /*if (this.Left >= 0)*/ StorageRegistry.Write("FormMain\\Left", this.Left);
+                // TODO: Closing Minimized Form is not handled!!!
+                if (this.Left >= 0) StorageRegistry.Write("FormMain\\Left", this.Left);
                 if (this.Top >= 0) StorageRegistry.Write("FormMain\\Top", this.Top);
                 if (this.Width >= ciWIDTH_NORMAL) StorageRegistry.Write("FormMain\\Width", this.Width);
                 if (this.Height >= ciHEIGHT_NORMAL) StorageRegistry.Write("FormMain\\Height", this.Height);
@@ -466,10 +481,11 @@ namespace RscBtLeDevBattLvlMon
                 bluetoothLeDevice.Dispose();
 
                 // DEBUG...
-                /*
-                if (s_Log) LogMessage("DEBUG -> await Task.Delay(8000);");
-                await Task.Delay(8000);
-                */
+                if (s_bTestTaskDelay)
+                {
+                    if (s_Log) LogMessage("DEBUG -> await Task.Delay(8000);");
+                    await Task.Delay(8000);
+                }
 
                 UpdateDevice(btLeDevInfo);
             }
@@ -648,7 +664,7 @@ namespace RscBtLeDevBattLvlMon
 
                 Color clrBk = Color.DodgerBlue;
                 int iCY = 2;
-                if (m_iAlertLevel >= 0 && (btLeDevInfo.BatteryLevel >= 0 && btLeDevInfo.BatteryLevel < m_iAlertLevel))
+                if (m_iAlertLevel >= 0 && (btLeDevInfo.BatteryLevel >= 0 && btLeDevInfo.BatteryLevel <= m_iAlertLevel))
                 {
                     iCY = 1;
                     clrBk = Color.Red;
@@ -1553,6 +1569,15 @@ namespace RscBtLeDevBattLvlMon
             {
                 m_iAlertLevel = Int32.Parse(tbAlertLevel.Text);
             }
+
+            StorageRegistry.Write("Settings\\Alert Level", m_iAlertLevel);
+
+            // Update Notify Icon...
+            foreach (BtLeDevInfo btLeDevInfoItem in m_aDevices)
+            {
+                btLeDevInfoItem.NotifyIcon_UpdateRequired = true;
+                RefreshNotifyIcon(btLeDevInfoItem);
+            }
         }
 
         private void chbLog_CheckedChanged(object sender, EventArgs e)
@@ -1562,22 +1587,27 @@ namespace RscBtLeDevBattLvlMon
                 s_Log = true;
                 if (s_Log) LogMessage("LOG STARTED...");
 
+                m_iBottomGap = ClientRectangle.Height - lvDevices.Bottom;
+
                 lvDevices.Anchor = (AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right); // | AnchorStyles.Bottom);
 
                 int iCY = lvDevices.Height / 2;
 
                 lvDevices.Height = iCY;
 
-                lbLog.Height = iCY - 10;
-                lbLog.Top = lvDevices.Top + iCY + 10;
+                lbLog.Height = iCY - m_iBottomGap;
+                lbLog.Top = lvDevices.Top + iCY + m_iBottomGap;
 
                 lbLog.Visible = true;
             }
             else
             {
                 s_Log = false;
+                lbLog.Items.Clear();
 
-                // TODO...
+                lbLog.Visible = false;
+
+                lvDevices.Height = (ClientRectangle.Height - lvDevices.Top) - m_iBottomGap;
 
                 lvDevices.Anchor = (AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right | AnchorStyles.Bottom);
             }
@@ -1598,7 +1628,66 @@ namespace RscBtLeDevBattLvlMon
 
         private void chbAutoHide_CheckedChanged(object sender, EventArgs e)
         {
-            StorageRegistry.Write("Devices\\App\\Auto Hide", chbAutoHide.Checked);
+            StorageRegistry.Write("Settings\\Auto Hide", chbAutoHide.Checked);
+        }
+
+        private void tbUpdateInterval_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            // SRC: https://stackoverflow.com/questions/463299/how-do-i-make-a-textbox-that-only-accepts-numbers
+            // Numbers only...
+            e.Handled = !char.IsDigit(e.KeyChar) && !char.IsControl(e.KeyChar);
+        }
+
+        private void tbUpdateInterval_TextChanged(object sender, EventArgs e)
+        {
+            if (tbUpdateInterval.Text.Length == 0)
+            {
+                tmrUpdate.Interval = 1000; // 1 sec
+            }
+            else
+            {
+                int iVal = Int32.Parse(tbUpdateInterval.Text);
+
+                if (iVal <= 0)
+                    tmrUpdate.Interval = 1000; // 1 sec
+                else
+                    tmrUpdate.Interval = iVal * (60 * 1000);
+            }
+
+            StorageRegistry.Write("Settings\\Update Interval", tmrUpdate.Interval);
+        }
+
+        private void chbAutoStart_CheckedChanged(object sender, EventArgs e)
+        {
+            // SRC: https://stackoverflow.com/questions/5089601/how-to-run-a-c-sharp-application-at-windows-startup
+            Microsoft.Win32.RegistryKey registryKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey
+                        ("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+
+            if (chbAutoStart.Checked)
+            {
+                registryKey.SetValue(csAPP_NAME, Application.ExecutablePath);
+            }
+            else
+            {
+                registryKey.DeleteValue(csAPP_NAME);
+            }
+
+            registryKey.Dispose();
+        }
+
+        public bool IsAppStartWithWindowsOn()
+        {
+            Microsoft.Win32.RegistryKey registryKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey
+                        ("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+
+            string sValue = (string) registryKey.GetValue(csAPP_NAME, "");
+
+            return (sValue == Application.ExecutablePath);
+        }
+
+        private void chbDebugDelay_CheckedChanged(object sender, EventArgs e)
+        {
+            s_bTestTaskDelay = chbDebugDelay.Checked;
         }
     }
 

@@ -41,6 +41,10 @@
             this.tbAlertLevel = new System.Windows.Forms.TextBox();
             this.chbLog = new System.Windows.Forms.CheckBox();
             this.chbAutoHide = new System.Windows.Forms.CheckBox();
+            this.chbAutoStart = new System.Windows.Forms.CheckBox();
+            this.lblInterval = new System.Windows.Forms.Label();
+            this.tbUpdateInterval = new System.Windows.Forms.TextBox();
+            this.chbDebugDelay = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // btnEnum
@@ -74,7 +78,7 @@
             this.btnStop.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnStop.Location = new System.Drawing.Point(178, 31);
             this.btnStop.Name = "btnStop";
-            this.btnStop.Size = new System.Drawing.Size(75, 25);
+            this.btnStop.Size = new System.Drawing.Size(91, 25);
             this.btnStop.TabIndex = 2;
             this.btnStop.Text = "Stop";
             this.btnStop.UseVisualStyleBackColor = true;
@@ -125,7 +129,7 @@
             // 
             // tmrUpdate
             // 
-            this.tmrUpdate.Interval = 1000;
+            this.tmrUpdate.Interval = 300000;
             this.tmrUpdate.Tick += new System.EventHandler(this.tmrUpdate_Tick);
             // 
             // btnInfoBar
@@ -147,20 +151,21 @@
             // 
             this.lblAlertLevel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.lblAlertLevel.AutoSize = true;
-            this.lblAlertLevel.Location = new System.Drawing.Point(532, 64);
+            this.lblAlertLevel.Location = new System.Drawing.Point(607, 63);
             this.lblAlertLevel.Name = "lblAlertLevel";
-            this.lblAlertLevel.Size = new System.Drawing.Size(65, 15);
+            this.lblAlertLevel.Size = new System.Drawing.Size(86, 15);
             this.lblAlertLevel.TabIndex = 7;
-            this.lblAlertLevel.Text = "Alert Level:";
+            this.lblAlertLevel.Text = "Alert Level (%):";
             // 
             // tbAlertLevel
             // 
             this.tbAlertLevel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.tbAlertLevel.Location = new System.Drawing.Point(603, 61);
+            this.tbAlertLevel.Location = new System.Drawing.Point(699, 60);
             this.tbAlertLevel.MaxLength = 2;
             this.tbAlertLevel.Name = "tbAlertLevel";
             this.tbAlertLevel.Size = new System.Drawing.Size(68, 23);
             this.tbAlertLevel.TabIndex = 8;
+            this.tbAlertLevel.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.tbAlertLevel.TextChanged += new System.EventHandler(this.tbAlertLevel_TextChanged);
             this.tbAlertLevel.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.tbAlertLevel_KeyPress);
             // 
@@ -178,7 +183,7 @@
             // chbAutoHide
             // 
             this.chbAutoHide.AutoSize = true;
-            this.chbAutoHide.Location = new System.Drawing.Point(323, 62);
+            this.chbAutoHide.Location = new System.Drawing.Point(319, 35);
             this.chbAutoHide.Name = "chbAutoHide";
             this.chbAutoHide.Size = new System.Drawing.Size(146, 19);
             this.chbAutoHide.TabIndex = 10;
@@ -186,17 +191,65 @@
             this.chbAutoHide.UseVisualStyleBackColor = true;
             this.chbAutoHide.CheckedChanged += new System.EventHandler(this.chbAutoHide_CheckedChanged);
             // 
+            // chbAutoStart
+            // 
+            this.chbAutoStart.AutoSize = true;
+            this.chbAutoStart.Location = new System.Drawing.Point(319, 62);
+            this.chbAutoStart.Name = "chbAutoStart";
+            this.chbAutoStart.Size = new System.Drawing.Size(156, 19);
+            this.chbAutoStart.TabIndex = 11;
+            this.chbAutoStart.Text = "Auto start with Windows";
+            this.chbAutoStart.UseVisualStyleBackColor = true;
+            this.chbAutoStart.CheckedChanged += new System.EventHandler(this.chbAutoStart_CheckedChanged);
+            // 
+            // lblInterval
+            // 
+            this.lblInterval.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblInterval.AutoSize = true;
+            this.lblInterval.Location = new System.Drawing.Point(486, 88);
+            this.lblInterval.Name = "lblInterval";
+            this.lblInterval.Size = new System.Drawing.Size(207, 15);
+            this.lblInterval.TabIndex = 12;
+            this.lblInterval.Text = "Update Interval (min / Empty = 1 sec):";
+            // 
+            // tbUpdateInterval
+            // 
+            this.tbUpdateInterval.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.tbUpdateInterval.Location = new System.Drawing.Point(699, 85);
+            this.tbUpdateInterval.MaxLength = 3;
+            this.tbUpdateInterval.Name = "tbUpdateInterval";
+            this.tbUpdateInterval.Size = new System.Drawing.Size(68, 23);
+            this.tbUpdateInterval.TabIndex = 13;
+            this.tbUpdateInterval.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.tbUpdateInterval.TextChanged += new System.EventHandler(this.tbUpdateInterval_TextChanged);
+            this.tbUpdateInterval.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.tbUpdateInterval_KeyPress);
+            // 
+            // chbDebugDelay
+            // 
+            this.chbDebugDelay.AutoSize = true;
+            this.chbDebugDelay.Location = new System.Drawing.Point(88, 87);
+            this.chbDebugDelay.Name = "chbDebugDelay";
+            this.chbDebugDelay.Size = new System.Drawing.Size(181, 19);
+            this.chbDebugDelay.TabIndex = 14;
+            this.chbDebugDelay.Text = "Test Update Task Delay (8 sec)";
+            this.chbDebugDelay.UseVisualStyleBackColor = true;
+            this.chbDebugDelay.CheckedChanged += new System.EventHandler(this.chbDebugDelay_CheckedChanged);
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Window;
             this.ClientSize = new System.Drawing.Size(779, 450);
+            this.Controls.Add(this.chbAutoStart);
             this.Controls.Add(this.chbAutoHide);
+            this.Controls.Add(this.chbDebugDelay);
+            this.Controls.Add(this.lblInterval);
+            this.Controls.Add(this.lblAlertLevel);
+            this.Controls.Add(this.tbAlertLevel);
+            this.Controls.Add(this.tbUpdateInterval);
             this.Controls.Add(this.lbLog);
             this.Controls.Add(this.chbLog);
-            this.Controls.Add(this.tbAlertLevel);
-            this.Controls.Add(this.lblAlertLevel);
             this.Controls.Add(this.btnEnum);
             this.Controls.Add(this.btnTogleIcon);
             this.Controls.Add(this.btnStop);
@@ -226,6 +279,10 @@
         private System.Windows.Forms.TextBox tbAlertLevel;
         private System.Windows.Forms.CheckBox chbLog;
         private System.Windows.Forms.CheckBox chbAutoHide;
+        private System.Windows.Forms.CheckBox chbAutoStart;
+        private System.Windows.Forms.Label lblInterval;
+        private System.Windows.Forms.TextBox tbUpdateInterval;
+        private System.Windows.Forms.CheckBox chbDebugDelay;
     }
 }
 
