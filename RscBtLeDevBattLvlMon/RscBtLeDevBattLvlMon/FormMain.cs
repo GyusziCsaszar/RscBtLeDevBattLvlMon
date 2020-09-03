@@ -55,7 +55,8 @@ namespace RscBtLeDevBattLvlMon
 
         public List<BtLeDevInfo> m_aDevices = new List<BtLeDevInfo>();
 
-        public NotifyIcon m_NotifyIcon;
+        public BtLeDevInfo m_btLeDevInfo1_DEV;
+        public BtLeDevInfo m_btLeDevInfo2_DEV;
 
         public FormMain()
         {
@@ -74,6 +75,8 @@ namespace RscBtLeDevBattLvlMon
             lvDevices.Columns.Add("MAC Address");
 
             // TODO...
+
+            tmrUpdate.Enabled = true;
         }
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
         {
@@ -95,51 +98,93 @@ namespace RscBtLeDevBattLvlMon
 
             if (!e.Cancel)
             {
-                if (m_NotifyIcon != null && m_NotifyIcon.Visible)
+                if (m_btLeDevInfo1_DEV != null && m_btLeDevInfo1_DEV.notifyIcon != null && m_btLeDevInfo1_DEV.notifyIcon.Visible)
                 {
-                    m_NotifyIcon.Visible = false;
+                    m_btLeDevInfo1_DEV.notifyIcon.Visible = false;
+                }
+                if (m_btLeDevInfo2_DEV != null && m_btLeDevInfo2_DEV.notifyIcon != null && m_btLeDevInfo2_DEV.notifyIcon.Visible)
+                {
+                    m_btLeDevInfo2_DEV.notifyIcon.Visible = false;
                 }
 
                 // TODO...
             }
         }
 
+        private void tmrUpdate_Tick(object sender, EventArgs e)
+        {
+            tmrUpdate.Enabled = false;
+
+            if (m_btLeDevInfo1_DEV == null) m_btLeDevInfo1_DEV = new BtLeDevInfo();
+            RefreshNotifyIcon(m_btLeDevInfo1_DEV);
+            m_btLeDevInfo1_DEV.BatteryLevel += 1;
+            if (m_btLeDevInfo1_DEV.BatteryLevel > 100) m_btLeDevInfo1_DEV.BatteryLevel = 0;
+
+            if (m_btLeDevInfo2_DEV == null)
+            {
+                m_btLeDevInfo2_DEV = new BtLeDevInfo();
+                m_btLeDevInfo2_DEV.BatteryLevel = 110;
+            }
+            RefreshNotifyIcon(m_btLeDevInfo2_DEV);
+            m_btLeDevInfo2_DEV.BatteryLevel -= 1;
+            if (m_btLeDevInfo2_DEV.BatteryLevel < 0) m_btLeDevInfo2_DEV.BatteryLevel = 100;
+
+            tmrUpdate.Enabled = true;
+        }
+
         private void btnTogleIcon_Click(object sender, EventArgs e)
         {
-            if (m_NotifyIcon == null)
+            //TODO...
+        }
+
+        private void RefreshNotifyIcon(BtLeDevInfo btLeDevInfo)
+        {
+            if (btLeDevInfo.notifyIcon == null)
             {
-                
-                m_NotifyIcon = new NotifyIcon();
 
-                //m_NotifyIcon.Icon = SystemIcons.Exclamation;
+                btLeDevInfo.notifyIcon = new NotifyIcon();
 
-                // SRC: https://stackoverflow.com/questions/25403169/get-application-icon-of-c-sharp-winforms-app
-                //m_NotifyIcon.Icon = Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            }
 
-                // SRC: https://stackoverflow.com/questions/34075264/i-want-to-display-numbers-on-the-system-tray-notification-icons-on-windows
-                Brush brush = new SolidBrush(Color.White);
-                Brush brushBk = new SolidBrush(Color.DodgerBlue);
-                Pen penBk = new Pen(Color.DodgerBlue);
-                // Create a bitmap and draw text on it
-                Bitmap bitmap = new Bitmap(24, 24); // 32, 32); // 16, 16);
-                Graphics graphics = Graphics.FromImage(bitmap);
-                //graphics.DrawRectangle(new Pen(Color.Red), new Rectangle(0, 0, 23, 23));
-                graphics.FillEllipse(brushBk, new Rectangle(3, 0, 23 - 4, 23 - 12));
-                graphics.DrawEllipse(penBk, new Rectangle(3, 0, 23 - 4, 23 - 12));
-                graphics.FillEllipse(brushBk, new Rectangle(3, 12, 23 - 4, 23 - 12));
-                graphics.DrawEllipse(penBk, new Rectangle(3, 12, 23 - 4, 23 - 12));
-                /*
-                graphics.FillRectangle(brushBk, new Rectangle(3, 6, 23 - 5, 23 - 10));
-                graphics.DrawRectangle(penBk, new Rectangle(3, 6, 23 - 5, 23 - 10));
-                */
-                graphics.FillRectangle(brushBk, new Rectangle(1, 6, 23 - 1, 23 - 10));
-                graphics.DrawRectangle(penBk, new Rectangle(1, 6, 23 - 1, 23 - 10));
-                Font font = new Font("Tahoma", 14); // 18);
-                graphics.DrawString("99", font, brush, 0, 2);
-                // Convert the bitmap with text to an Icon
-                m_NotifyIcon.Icon = Icon.FromHandle(bitmap.GetHicon());
+            string sBattLevel;
+            if (btLeDevInfo.BatteryLevel > 99)
+                sBattLevel = "1d";
+            else
+                sBattLevel = btLeDevInfo.BatteryLevel.ToString();
 
-                m_NotifyIcon.Visible = true;
+            //m_NotifyIcon.Icon = SystemIcons.Exclamation;
+
+            // SRC: https://stackoverflow.com/questions/25403169/get-application-icon-of-c-sharp-winforms-app
+            //m_NotifyIcon.Icon = Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+            // SRC: https://stackoverflow.com/questions/34075264/i-want-to-display-numbers-on-the-system-tray-notification-icons-on-windows
+            Brush brush = new SolidBrush(Color.White);
+            Brush brushBk = new SolidBrush(Color.DodgerBlue);
+            Pen penBk = new Pen(Color.DodgerBlue);
+            // Create a bitmap and draw text on it
+            Bitmap bitmap = new Bitmap(24, 24); // 32, 32); // 16, 16);
+            Graphics graphics = Graphics.FromImage(bitmap);
+            //graphics.DrawRectangle(new Pen(Color.Red), new Rectangle(0, 0, 23, 23));
+            graphics.FillEllipse(brushBk, new Rectangle(3, 0, 23 - 4, 23 - 12));
+            graphics.DrawEllipse(penBk, new Rectangle(3, 0, 23 - 4, 23 - 12));
+            graphics.FillEllipse(brushBk, new Rectangle(3, 12, 23 - 4, 23 - 12));
+            graphics.DrawEllipse(penBk, new Rectangle(3, 12, 23 - 4, 23 - 12));
+            /*
+            graphics.FillRectangle(brushBk, new Rectangle(3, 6, 23 - 5, 23 - 10));
+            graphics.DrawRectangle(penBk, new Rectangle(3, 6, 23 - 5, 23 - 10));
+            */
+            graphics.FillRectangle(brushBk, new Rectangle(1, 6, 23 - 1, 23 - 10));
+            graphics.DrawRectangle(penBk, new Rectangle(1, 6, 23 - 1, 23 - 10));
+            Font font = new Font("Tahoma", 14); // 18);
+            int iCX = 0;
+            if (sBattLevel.Length < 2) iCX += 5;
+            graphics.DrawString(sBattLevel, font, brush, iCX, 2);
+            // Convert the bitmap with text to an Icon
+            btLeDevInfo.notifyIcon.Icon = Icon.FromHandle(bitmap.GetHicon());
+
+            if (!btLeDevInfo.notifyIcon.Visible)
+            {
+                btLeDevInfo.notifyIcon.Visible = true;
             }
         }
 
@@ -901,6 +946,12 @@ namespace RscBtLeDevBattLvlMon
         }
 
         public int BatteryLevel
+        {
+            get;
+            set;
+        }
+
+        public NotifyIcon notifyIcon
         {
             get;
             set;
