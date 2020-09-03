@@ -28,9 +28,20 @@ namespace RscBtLeDevBattLvlMon
 {
     public partial class FormMain : Form
     {
+
+        protected const string csAPP_TITLE = "Bluetooth LE Device Battery Level Monitor";
+        protected const string csAPP_NAME = "RscBtLeDevBattLvlMon";
+
+        protected const int ciWIDTH_NORMAL = 795;
+        protected const int ciHEIGHT_NORMAL = 489;
+
         // SRC: https://stackoverflow.com/questions/12026664/a-generic-error-occurred-in-gdi-when-calling-bitmap-gethicon
         [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = CharSet.Auto)]
         extern static bool DestroyIcon(IntPtr handle);
+
+        // SRC: https://stackoverflow.com/questions/4645171/environment-tickcount-is-not-enough/4645208
+        [DllImport("kernel32.dll")]
+        public static extern UInt64 GetTickCount64();
 
         // SRC: https://stackoverflow.com/questions/43568096/frombluetoothaddressasync-never-returns-on-windows-10-creators-update-in-wpf-app
 
@@ -58,21 +69,35 @@ namespace RscBtLeDevBattLvlMon
 
         public static FormMain s_MainForm = null;
 
-        public static bool s_bCloseOnStop = false;
+        public static bool s_bCloseApp = false;
 
         public List<BtLeDevInfo> m_aDevices = new List<BtLeDevInfo>();
 
         public int m_iAlertLevel = 30;
 
+        public static UInt64 s_tcAppStart;
+
         public FormMain()
         {
             InitializeComponent();
+
+            StorageRegistry.m_sAppName = csAPP_NAME;
+            this.Text = csAPP_TITLE;
+
+            s_tcAppStart = GetTickCount64();
 
             s_MainForm = this;
         }
 
         private void FormMain_Shown(object sender, EventArgs e)
         {
+            // Later...
+            /*
+            this.Left = /*Math.Max(0,* StorageRegistry.Read("Main_Left", this.Left); //);
+            this.Top = Math.Max(0, StorageRegistry.Read("Main_Top", this.Top));
+            this.Width = Math.Max(ciWIDTH_NORMAL, StorageRegistry.Read("Main_Width", this.Width));
+            this.Height = Math.Max(ciHEIGHT_NORMAL, StorageRegistry.Read("Main_Height", this.Height));
+            */
 
             lvDevices.Columns.Add("Battery Level");
             lvDevices.Columns.Add("Name");
@@ -90,6 +115,10 @@ namespace RscBtLeDevBattLvlMon
         }
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
         {
+            // ATTN!
+            s_bCloseApp = true;
+            tmrUpdate.Enabled = false;
+
             if (deviceWatcher != null)
             {
                 if (deviceWatcher.Status == DeviceWatcherStatus.Started ||
@@ -97,7 +126,7 @@ namespace RscBtLeDevBattLvlMon
                 {
                     NewMsg(false /*bError*/, "Stopping Device discovery before closing application.");
 
-                    s_bCloseOnStop = true;
+                    s_bCloseApp = true;
                     deviceWatcher.Stop();
 
                     e.Cancel = true;
@@ -108,6 +137,30 @@ namespace RscBtLeDevBattLvlMon
 
                     e.Cancel = true;
                 }
+            }
+
+            if (!e.Cancel)
+            {
+                foreach (BtLeDevInfo btLeDevInfoItem in s_MainForm.m_aDevices)
+                {
+
+                    if (btLeDevInfoItem.tskUpdate != null)
+                    {
+                        if ((btLeDevInfoItem.tskUpdate.Status != TaskStatus.Canceled) &&
+                            (btLeDevInfoItem.tskUpdate.Status != TaskStatus.Faulted) &&
+                            (btLeDevInfoItem.tskUpdate.Status != TaskStatus.RanToCompletion))
+                        {
+                            LogMessage("DEBUG -> (CLOSING APP) WAITING FOR QueryBtLeDevice_Known_Async...");
+
+                            NewMsg(false /*bError*/, "Waiting for Device update to complete before closing application.");
+
+                            s_bCloseApp = true;
+
+                            e.Cancel = true;
+                        }
+                    }
+                }
+
             }
 
             if (!e.Cancel)
@@ -133,7 +186,26 @@ namespace RscBtLeDevBattLvlMon
                 }
             }
 
-            // TODO...
+            // ATTN!!!
+            if (e.Cancel)
+            {
+                return;
+            }
+
+            /*if (this.Left >= 0)*/
+            StorageRegistry.Write("Main_Left", this.Left);
+            if (this.Top >= 0) StorageRegistry.Write("Main_Top", this.Top);
+            if (this.Width >= ciWIDTH_NORMAL) StorageRegistry.Write("Main_Width", this.Width);
+            if (this.Height >= ciHEIGHT_NORMAL) StorageRegistry.Write("Main_Height", this.Height);
+
+            int iCol;
+
+            iCol = -1;
+            foreach (ColumnHeader ch in lvDevices.Columns)
+            {
+                iCol++;
+                StorageRegistry.Write("Grid_Devices\\Column" + iCol.ToString(), ch.Width);
+            }
         }
 
         public void NewMsg(bool bError, string sMsg)
@@ -162,6 +234,8 @@ namespace RscBtLeDevBattLvlMon
 
         private void tmrUpdate_Tick(object sender, EventArgs e)
         {
+            LogMessage("DEBUG -> TIMER...");
+
             tmrUpdate.Enabled = false;
 
             foreach (BtLeDevInfo btLeDevInfoItem in s_MainForm.m_aDevices)
@@ -172,33 +246,69 @@ namespace RscBtLeDevBattLvlMon
 
                     if (btLeDevInfoItem.tskUpdate != null)
                     {
+
+                        //LogMessage("DEBUG -> tskUpdate.IsCompleted = " + btLeDevInfoItem.tskUpdate.IsCompleted);
+                        //LogMessage("DEBUG -> tskUpdate.Status = " + btLeDevInfoItem.tskUpdate.Status);
+
                         if ((btLeDevInfoItem.tskUpdate.Status != TaskStatus.Canceled) &&
                             (btLeDevInfoItem.tskUpdate.Status != TaskStatus.Faulted) &&
                             (btLeDevInfoItem.tskUpdate.Status != TaskStatus.RanToCompletion))
                         {
                             bGo = false;
 
-                            NewMsg(true /*bError*/, "Device update is in progress!");
+                            LogMessage("DEBUG -> WAITING FOR QueryBtLeDevice_Known_Async...");
                         }
                     }
 
                     if (bGo)
                     {
-                        btLeDevInfoItem.tskUpdate = QueryBtLeDevice_Known_Async(btLeDevInfoItem);
+                        LogMessage("DEBUG -> STARTING QueryBtLeDevice_Known_Async...");
+
+                        // BUG: Reported as Completed while NOT...
+                        //btLeDevInfoItem.tskUpdate = QueryBtLeDevice_Known_Async_Task(btLeDevInfoItem);
+
+                        // BUG: Reported as Completed while NOT...
+                        //btLeDevInfoItem.tskUpdate = Task.Run(() => QueryBtLeDevice_Known_Async(btLeDevInfoItem));
+
+                        // BUG: UI freez experienced...
+                        //btLeDevInfoItem.tskUpdate = QueryBtLeDevice_Known_Async(btLeDevInfoItem);
+
+                        // FIX: No UI freez!!!
+                        btLeDevInfoItem.tskUpdate = QueryBtLeDevice_Known_Async_Task2(btLeDevInfoItem);
+
+                        LogMessage("DEBUG -> STARTED QueryBtLeDevice_Known_Async...");
                     }
                 }
             }
 
-            tmrUpdate.Enabled = true;
+            if (!s_bCloseApp)
+            {
+                tmrUpdate.Enabled = true;
+            }
         }
 
+        // BUG: Reported as Completed while NOT...
+        /*
         // SRC: https://stackoverflow.com/questions/17119075/do-you-have-to-put-task-run-in-a-method-to-make-it-async
-        public async Task QueryBtLeDevice_Known_Async(BtLeDevInfo btLeDevInfoWhat)
+        public async Task QueryBtLeDevice_Known_Async_Task(BtLeDevInfo btLeDevInfoWhat)
         {
-            await Task.Run(() => QueryBtLeDevice_Known(btLeDevInfoWhat));
+            await Task.Run(() => QueryBtLeDevice_Known_Async(btLeDevInfoWhat));
+        }
+        */
+        public async Task QueryBtLeDevice_Known_Async_Task2(BtLeDevInfo btLeDevInfoWhat)
+        {
+            LogMessage("DEBUG -> Root Task - BEGIN");
+
+            Task tsk = Task.Run(() => QueryBtLeDevice_Known_Async(btLeDevInfoWhat));
+
+            LogMessage("DEBUG -> Root Task - AWAIT");
+
+            await tsk;
+
+            LogMessage("DEBUG -> Root Task - END");
         }
 
-        public async void QueryBtLeDevice_Known(BtLeDevInfo btLeDevInfoWhat)
+        public async Task QueryBtLeDevice_Known_Async(BtLeDevInfo btLeDevInfoWhat)
         {
             try
             {
@@ -243,6 +353,10 @@ namespace RscBtLeDevBattLvlMon
                 }
 
                 bluetoothLeDevice.Dispose();
+
+                // DEBUG...
+                LogMessage("DEBUG -> await Task.Delay(8000);");
+                await Task.Delay(8000);
 
                 UpdateDevice(btLeDevInfo);
             }
@@ -378,7 +492,11 @@ namespace RscBtLeDevBattLvlMon
                 }
                 else
                 {
-                    s_MainForm.lbLog.Items.Add(sMessage);
+                    UInt64 tcRunning = GetTickCount64() - s_tcAppStart;
+
+                    string sLogLine = (tcRunning / 1000).ToString() + "." + (tcRunning % 1000).ToString() + " - " + sMessage;
+
+                    s_MainForm.lbLog.Items.Add(sLogLine);
                 }
             }
         }
@@ -416,8 +534,9 @@ namespace RscBtLeDevBattLvlMon
                             s_MainForm.btnStop.Enabled = false;
                             s_MainForm.btnStop.Visible = false;
 
-                            if (s_bCloseOnStop)
+                            if (s_bCloseApp)
                             {
+                                LogMessage("DEBUG -> (CLOSING APP) DeviceWatcherStatus.Stopped...");
                                 s_MainForm.Close();
                             }
 
@@ -586,7 +705,7 @@ namespace RscBtLeDevBattLvlMon
                     {
                         bColored = true;
 
-                        s_MainForm.lvDevices.Items[iIdxItem].BackColor = Color.YellowGreen;
+                        s_MainForm.lvDevices.Items[iIdxItem].BackColor = Color.Yellow;
                         s_MainForm.lvDevices.Items[iIdxItem].ForeColor = Color.Black;
                     }
 
@@ -615,6 +734,17 @@ namespace RscBtLeDevBattLvlMon
                                 break;
                         }
                     }
+
+                    if (btLeDevInfo.Reason == BtLeDevInfo_Reason.QUERY
+                        && s_bCloseApp)
+                    {
+                        // FIX(PROVEN): To avoid identifying as still running...
+                        btLeDevInfo.tskUpdate = null;
+
+                        LogMessage("DEBUG -> (CLOSING APP) UpdateDevice...");
+                        s_MainForm.Close();
+                    }
+
                 }
 
             }
@@ -1091,10 +1221,12 @@ namespace RscBtLeDevBattLvlMon
             }
         }
 
-        private void DeviceWatcher_EnumerationCompleted(DeviceWatcher sender, object args)
+        private async void DeviceWatcher_EnumerationCompleted(DeviceWatcher sender, object args)
         {
             try
             {
+                await BluetoothLEDevicesLock.WaitAsync();
+
                 // Protect against race condition if the task runs after the app stopped the deviceWatcher.
                 if (sender == deviceWatcher)
                 {
@@ -1109,12 +1241,18 @@ namespace RscBtLeDevBattLvlMon
             {
                 LogMessage("DeviceWatcher_EnumerationCompleted - ERROR: " + ex.Message);
             }
+            finally
+            {
+                BluetoothLEDevicesLock.Release();
+            }
         }
 
-        private void DeviceWatcher_Stopped(DeviceWatcher sender, object args)
+        private async void DeviceWatcher_Stopped(DeviceWatcher sender, object args)
         {
             try
             {
+                await BluetoothLEDevicesLock.WaitAsync();
+
                 // Protect against race condition if the task runs after the app stopped the deviceWatcher.
                 if (sender == deviceWatcher)
                 {
@@ -1128,6 +1266,10 @@ namespace RscBtLeDevBattLvlMon
             catch (Exception ex)
             {
                 LogMessage("DeviceWatcher_Removed - ERROR: " + ex.Message);
+            }
+            finally
+            {
+                BluetoothLEDevicesLock.Release();
             }
         }
 
