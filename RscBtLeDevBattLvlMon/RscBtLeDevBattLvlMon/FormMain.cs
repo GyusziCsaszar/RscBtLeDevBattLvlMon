@@ -12,7 +12,10 @@ using System.Windows.Forms;
 // ATTN: There are differences between WinRT 8.1 and WinRT 10!!!
 
 using Windows.Devices.Bluetooth;
+
+/*
 using Windows.Devices.Bluetooth.Advertisement;
+*/
 
 // SRC: https://github.com/microsoft/BluetoothLEExplorer
 
@@ -1665,7 +1668,22 @@ namespace RscBtLeDevBattLvlMon
 
             if (chbAutoStart.Checked)
             {
-                registryKey.SetValue(csAPP_NAME, Application.ExecutablePath);
+                // BUG: Dll Path!!!
+                //string sAppPath = Application.ExecutablePath;
+                //string sAppPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                //string sAppPath = System.Reflection.Assembly.GetEntryAssembly().Location;
+
+                // FIX
+                string sAppPath = Application.ExecutablePath;
+                if (sAppPath.Length > 4)
+                {
+                    if (sAppPath.Substring(sAppPath.Length - 4).ToLower() == ".dll")
+                    {
+                        sAppPath = sAppPath.Substring(0, sAppPath.Length - 4) + ".exe";
+                    }
+                }
+
+                registryKey.SetValue(csAPP_NAME, sAppPath);
             }
             else
             {
@@ -1682,7 +1700,22 @@ namespace RscBtLeDevBattLvlMon
 
             string sValue = (string) registryKey.GetValue(csAPP_NAME, "");
 
-            return (sValue == Application.ExecutablePath);
+            // BUG: Dll Path!!!
+            //string sAppPath = Application.ExecutablePath;
+            //string sAppPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+            //string sAppPath = System.Reflection.Assembly.GetEntryAssembly().Location;
+
+            // FIX
+            string sAppPath = Application.ExecutablePath;
+            if (sAppPath.Length > 4)
+            {
+                if (sAppPath.Substring(sAppPath.Length - 4).ToLower() == ".dll")
+                {
+                    sAppPath = sAppPath.Substring(0, sAppPath.Length - 4) + ".exe";
+                }
+            }
+
+            return (sValue == sAppPath);
         }
 
         private void chbDebugDelay_CheckedChanged(object sender, EventArgs e)
