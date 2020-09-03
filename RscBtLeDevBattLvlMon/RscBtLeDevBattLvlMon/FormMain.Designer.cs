@@ -39,6 +39,7 @@
             this.btnInfoBar = new System.Windows.Forms.Button();
             this.lblAlertLevel = new System.Windows.Forms.Label();
             this.tbAlertLevel = new System.Windows.Forms.TextBox();
+            this.chbLog = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // btnEnum
@@ -85,9 +86,10 @@
             this.lvDevices.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.lvDevices.FullRowSelect = true;
             this.lvDevices.HideSelection = false;
-            this.lvDevices.Location = new System.Drawing.Point(12, 109);
+            this.lvDevices.Location = new System.Drawing.Point(12, 114);
+            this.lvDevices.MultiSelect = false;
             this.lvDevices.Name = "lvDevices";
-            this.lvDevices.Size = new System.Drawing.Size(755, 168);
+            this.lvDevices.Size = new System.Drawing.Size(755, 163);
             this.lvDevices.TabIndex = 3;
             this.lvDevices.UseCompatibleStateImageBehavior = false;
             this.lvDevices.View = System.Windows.Forms.View.Details;
@@ -98,12 +100,12 @@
             this.chbAutoStopOnEnumComp.Checked = true;
             this.chbAutoStopOnEnumComp.CheckState = System.Windows.Forms.CheckState.Checked;
             this.chbAutoStopOnEnumComp.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.chbAutoStopOnEnumComp.Location = new System.Drawing.Point(12, 71);
+            this.chbAutoStopOnEnumComp.Location = new System.Drawing.Point(12, 62);
             this.chbAutoStopOnEnumComp.Name = "chbAutoStopOnEnumComp";
             this.chbAutoStopOnEnumComp.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.chbAutoStopOnEnumComp.Size = new System.Drawing.Size(260, 19);
+            this.chbAutoStopOnEnumComp.Size = new System.Drawing.Size(257, 19);
             this.chbAutoStopOnEnumComp.TabIndex = 4;
-            this.chbAutoStopOnEnumComp.Text = "Auto stop when device discovery completed.";
+            this.chbAutoStopOnEnumComp.Text = "Auto stop when device discovery completed";
             this.chbAutoStopOnEnumComp.UseVisualStyleBackColor = true;
             // 
             // btnTogleIcon
@@ -141,7 +143,7 @@
             // lblAlertLevel
             // 
             this.lblAlertLevel.AutoSize = true;
-            this.lblAlertLevel.Location = new System.Drawing.Point(532, 71);
+            this.lblAlertLevel.Location = new System.Drawing.Point(532, 64);
             this.lblAlertLevel.Name = "lblAlertLevel";
             this.lblAlertLevel.Size = new System.Drawing.Size(65, 15);
             this.lblAlertLevel.TabIndex = 7;
@@ -149,7 +151,7 @@
             // 
             // tbAlertLevel
             // 
-            this.tbAlertLevel.Location = new System.Drawing.Point(603, 70);
+            this.tbAlertLevel.Location = new System.Drawing.Point(603, 61);
             this.tbAlertLevel.MaxLength = 2;
             this.tbAlertLevel.Name = "tbAlertLevel";
             this.tbAlertLevel.Size = new System.Drawing.Size(68, 23);
@@ -157,12 +159,24 @@
             this.tbAlertLevel.TextChanged += new System.EventHandler(this.tbAlertLevel_TextChanged);
             this.tbAlertLevel.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.tbAlertLevel_KeyPress);
             // 
+            // chbLog
+            // 
+            this.chbLog.AutoSize = true;
+            this.chbLog.Location = new System.Drawing.Point(12, 87);
+            this.chbLog.Name = "chbLog";
+            this.chbLog.Size = new System.Drawing.Size(75, 19);
+            this.chbLog.TabIndex = 9;
+            this.chbLog.Text = "Show log";
+            this.chbLog.UseVisualStyleBackColor = true;
+            this.chbLog.CheckedChanged += new System.EventHandler(this.chbLog_CheckedChanged);
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Window;
             this.ClientSize = new System.Drawing.Size(779, 450);
+            this.Controls.Add(this.chbLog);
             this.Controls.Add(this.tbAlertLevel);
             this.Controls.Add(this.lblAlertLevel);
             this.Controls.Add(this.btnEnum);
@@ -193,6 +207,7 @@
         private System.Windows.Forms.Button btnInfoBar;
         private System.Windows.Forms.Label lblAlertLevel;
         private System.Windows.Forms.TextBox tbAlertLevel;
+        private System.Windows.Forms.CheckBox chbLog;
     }
 }
 

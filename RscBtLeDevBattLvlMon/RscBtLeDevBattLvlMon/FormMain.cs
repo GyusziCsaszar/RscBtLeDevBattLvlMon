@@ -77,6 +77,22 @@ namespace RscBtLeDevBattLvlMon
 
         public static UInt64 s_tcAppStart;
 
+        public bool bAppWasShown = false;
+
+        public static bool s_Log = false;
+
+        // SRC: https://stackoverflow.com/questions/5168249/c-showing-an-invisible-form
+        // INFO: This ensures that the window doesn't become visible the first time you call Show().
+        protected override void SetVisibleCore(bool value)
+        {
+            if (!this.IsHandleCreated)
+            {
+                this.CreateHandle();
+                value = false;   // Prevent window from becoming visible
+            }
+            base.SetVisibleCore(value);
+        }
+
         public FormMain()
         {
             InitializeComponent();
@@ -87,32 +103,107 @@ namespace RscBtLeDevBattLvlMon
             s_tcAppStart = GetTickCount64();
 
             s_MainForm = this;
+
+            try
+            {
+                InitializeForm();
+            }
+            catch (Exception ex)
+            {
+                NewMsg(true /*bError*/, ex.Message);
+            }
         }
 
         private void FormMain_Shown(object sender, EventArgs e)
         {
+            // NOT CALLED ON STARTUP
+            // because of the implemented SetVisibleCore
+
+            this.Left = /*Math.Max(0,*/ StorageRegistry.Read("FormMain\\Left", this.Left); //);
+            this.Top = Math.Max(0, StorageRegistry.Read("FormMain\\Top", this.Top));
+
             // Later...
             /*
-            this.Left = /*Math.Max(0,* StorageRegistry.Read("Main_Left", this.Left); //);
-            this.Top = Math.Max(0, StorageRegistry.Read("Main_Top", this.Top));
-            this.Width = Math.Max(ciWIDTH_NORMAL, StorageRegistry.Read("Main_Width", this.Width));
-            this.Height = Math.Max(ciHEIGHT_NORMAL, StorageRegistry.Read("Main_Height", this.Height));
+            this.Width = Math.Max(ciWIDTH_NORMAL, StorageRegistry.Read("FormMain\\Width", this.Width));
             */
+            this.Height = Math.Max(ciHEIGHT_NORMAL, StorageRegistry.Read("FormMain\\Height", this.Height));
+
+            // ATTN!
+            bAppWasShown = true;
+
+            //InitializeForm();
+        }
+
+        public void InitializeForm()
+        {
 
             lvDevices.Columns.Add("Battery Level");
             lvDevices.Columns.Add("Name");
             lvDevices.Columns.Add("Status");
             lvDevices.Columns.Add("Service Count");
             lvDevices.Columns.Add("MAC Address");
+            lvDevices.Columns.Add("Update Count");
             lvDevices.Columns.Add("Device ID");
             lvDevices.Columns.Add("Last Error");
 
+            int iCol = -1;
+            foreach (ColumnHeader ch in lvDevices.Columns)
+            {
+                iCol++;
+                int iColWidth = StorageRegistry.Read("FormMain\\GridDevices\\Column" + iCol.ToString(), -1);
+                if (iColWidth > 0)
+                {
+                    ch.Width = iColWidth;
+                }
+            }
+
             tbAlertLevel.Text = m_iAlertLevel.ToString();
 
-            // TODO...
+            bool bHasUpdateableDevice = false;
 
-            tmrUpdate.Enabled = true;
+            int iDevRegCnt = StorageRegistry.Read("Devices\\DeviceCount", 0);
+            for (int iDevReg = 0; iDevReg < iDevRegCnt; iDevReg++)
+            {
+                string sMacAddress = StorageRegistry.Read("Devices\\Device" + iDevReg.ToString() + "\\MAC Address", "");
+
+                if (sMacAddress.Length > 0)
+                {
+                    BtLeDevInfo btLeDevInfo = new BtLeDevInfo();
+
+                    btLeDevInfo.Reason = BtLeDevInfo_Reason.PRELOADED;
+
+                    btLeDevInfo.MacAddress = sMacAddress;
+                    btLeDevInfo.MacAddressUlong = Convert.ToUInt64(sMacAddress.Replace(":", String.Empty), 16);
+
+                    btLeDevInfo.Name = StorageRegistry.Read("Devices\\Device" + iDevReg.ToString() + "\\Name", "");
+                    btLeDevInfo.DeviceID = StorageRegistry.Read("Devices\\Device" + iDevReg.ToString() + "\\Device ID", "");
+                    //StorageRegistry.Read("Devices\\Device" + iDevReg.ToString() + "\\Service Count", 0);
+                    btLeDevInfo.BatteryLevel = -1; //StorageRegistry.Read("Devices\\Device" + iDevReg.ToString() + "\\Battery Level", 0);
+                    btLeDevInfo.ShowNotifyIcon = StorageRegistry.Read("Devices\\Device" + iDevReg.ToString() + "\\Show NotifyIcon", false);
+
+                    UpdateDevice(btLeDevInfo);
+
+                    if (btLeDevInfo.ShowNotifyIcon)
+                    {
+                        bHasUpdateableDevice = true;
+
+                        RefreshNotifyIcon(btLeDevInfo);
+
+                        BeginQueryBtLeDevice(btLeDevInfo);
+                    }
+
+                }
+            }
+
+            tmrUpdate.Enabled = bHasUpdateableDevice;
+
+            // ATTN!
+            if (!bHasUpdateableDevice)
+            {
+                this.Visible = true;
+            }
         }
+
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
         {
             // ATTN!
@@ -150,7 +241,7 @@ namespace RscBtLeDevBattLvlMon
                             (btLeDevInfoItem.tskUpdate.Status != TaskStatus.Faulted) &&
                             (btLeDevInfoItem.tskUpdate.Status != TaskStatus.RanToCompletion))
                         {
-                            LogMessage("DEBUG -> (CLOSING APP) WAITING FOR QueryBtLeDevice_Known_Async...");
+                            if (s_Log) LogMessage("DEBUG -> (CLOSING APP) WAITING FOR QueryBtLeDevice_Known_Async...");
 
                             NewMsg(false /*bError*/, "Waiting for Device update to complete before closing application.");
 
@@ -167,22 +258,7 @@ namespace RscBtLeDevBattLvlMon
             {
                 foreach (BtLeDevInfo btLeDevInfoItem in s_MainForm.m_aDevices)
                 {
-                    if (btLeDevInfoItem.notifyIcon != null)
-                    {
-                        IntPtr hIcon = IntPtr.Zero;
-                        if (btLeDevInfoItem.notifyIcon.Icon != null)
-                        {
-                            hIcon = btLeDevInfoItem.notifyIcon.Icon.Handle;
-
-                            btLeDevInfoItem.notifyIcon.Icon = null;
-
-                            // SRC: https://stackoverflow.com/questions/12026664/a-generic-error-occurred-in-gdi-when-calling-bitmap-gethicon
-                            if (hIcon != IntPtr.Zero)
-                            {
-                                DestroyIcon(hIcon);
-                            }
-                        }
-                    }
+                    HideNotifyIcon(btLeDevInfoItem);
                 }
             }
 
@@ -192,19 +268,43 @@ namespace RscBtLeDevBattLvlMon
                 return;
             }
 
-            /*if (this.Left >= 0)*/
-            StorageRegistry.Write("Main_Left", this.Left);
-            if (this.Top >= 0) StorageRegistry.Write("Main_Top", this.Top);
-            if (this.Width >= ciWIDTH_NORMAL) StorageRegistry.Write("Main_Width", this.Width);
-            if (this.Height >= ciHEIGHT_NORMAL) StorageRegistry.Write("Main_Height", this.Height);
-
-            int iCol;
-
-            iCol = -1;
-            foreach (ColumnHeader ch in lvDevices.Columns)
+            if (bAppWasShown)
             {
-                iCol++;
-                StorageRegistry.Write("Grid_Devices\\Column" + iCol.ToString(), ch.Width);
+                /*if (this.Left >= 0)*/ StorageRegistry.Write("FormMain\\Left", this.Left);
+                if (this.Top >= 0) StorageRegistry.Write("FormMain\\Top", this.Top);
+                if (this.Width >= ciWIDTH_NORMAL) StorageRegistry.Write("FormMain\\Width", this.Width);
+                if (this.Height >= ciHEIGHT_NORMAL) StorageRegistry.Write("FormMain\\Height", this.Height);
+
+                int iCol = -1;
+                foreach (ColumnHeader ch in lvDevices.Columns)
+                {
+                    iCol++;
+                    StorageRegistry.Write("FormMain\\GridDevices\\Column" + iCol.ToString(), ch.Width);
+                }
+            }
+        }
+
+        public void HideNotifyIcon(BtLeDevInfo btLeDevInfo)
+        {
+            if (btLeDevInfo.notifyIcon != null)
+            {
+                btLeDevInfo.notifyIcon.Visible = false;
+
+                IntPtr hIcon = IntPtr.Zero;
+                if (btLeDevInfo.notifyIcon.Icon != null)
+                {
+                    hIcon = btLeDevInfo.notifyIcon.Icon.Handle;
+
+                    btLeDevInfo.notifyIcon.Icon = null;
+
+                    // SRC: https://stackoverflow.com/questions/12026664/a-generic-error-occurred-in-gdi-when-calling-bitmap-gethicon
+                    if (hIcon != IntPtr.Zero)
+                    {
+                        DestroyIcon(hIcon);
+                    }
+                }
+
+                btLeDevInfo.notifyIcon = null;
             }
         }
 
@@ -212,6 +312,9 @@ namespace RscBtLeDevBattLvlMon
         {
             if (bError)
             {
+                // ATTN!
+                this.Visible = true;
+
                 btnInfoBar.Text = "ERROR: " + sMsg + " (press to hide)";
 
                 btnInfoBar.BackColor = Color.DarkRed;
@@ -234,56 +337,61 @@ namespace RscBtLeDevBattLvlMon
 
         private void tmrUpdate_Tick(object sender, EventArgs e)
         {
-            LogMessage("DEBUG -> TIMER...");
+            if (s_Log) LogMessage("DEBUG -> TIMER...");
 
             tmrUpdate.Enabled = false;
 
             foreach (BtLeDevInfo btLeDevInfoItem in s_MainForm.m_aDevices)
             {
-                if (btLeDevInfoItem.BatteryLevel != 0)
-                {
-                    bool bGo = true;
-
-                    if (btLeDevInfoItem.tskUpdate != null)
-                    {
-
-                        //LogMessage("DEBUG -> tskUpdate.IsCompleted = " + btLeDevInfoItem.tskUpdate.IsCompleted);
-                        //LogMessage("DEBUG -> tskUpdate.Status = " + btLeDevInfoItem.tskUpdate.Status);
-
-                        if ((btLeDevInfoItem.tskUpdate.Status != TaskStatus.Canceled) &&
-                            (btLeDevInfoItem.tskUpdate.Status != TaskStatus.Faulted) &&
-                            (btLeDevInfoItem.tskUpdate.Status != TaskStatus.RanToCompletion))
-                        {
-                            bGo = false;
-
-                            LogMessage("DEBUG -> WAITING FOR QueryBtLeDevice_Known_Async...");
-                        }
-                    }
-
-                    if (bGo)
-                    {
-                        LogMessage("DEBUG -> STARTING QueryBtLeDevice_Known_Async...");
-
-                        // BUG: Reported as Completed while NOT...
-                        //btLeDevInfoItem.tskUpdate = QueryBtLeDevice_Known_Async_Task(btLeDevInfoItem);
-
-                        // BUG: Reported as Completed while NOT...
-                        //btLeDevInfoItem.tskUpdate = Task.Run(() => QueryBtLeDevice_Known_Async(btLeDevInfoItem));
-
-                        // BUG: UI freez experienced...
-                        //btLeDevInfoItem.tskUpdate = QueryBtLeDevice_Known_Async(btLeDevInfoItem);
-
-                        // FIX: No UI freez!!!
-                        btLeDevInfoItem.tskUpdate = QueryBtLeDevice_Known_Async_Task2(btLeDevInfoItem);
-
-                        LogMessage("DEBUG -> STARTED QueryBtLeDevice_Known_Async...");
-                    }
-                }
+                BeginQueryBtLeDevice(btLeDevInfoItem);
             }
 
             if (!s_bCloseApp)
             {
                 tmrUpdate.Enabled = true;
+            }
+        }
+
+        public void BeginQueryBtLeDevice(BtLeDevInfo btLeDevInfo)
+        {
+            if (btLeDevInfo.BatteryLevel != 0 && btLeDevInfo.ShowNotifyIcon)
+            {
+                bool bGo = true;
+
+                if (btLeDevInfo.tskUpdate != null)
+                {
+
+                    //if (s_Log) LogMessage("DEBUG -> tskUpdate.IsCompleted = " + btLeDevInfo.tskUpdate.IsCompleted);
+                    //if (s_Log) LogMessage("DEBUG -> tskUpdate.Status = " + btLeDevInfo.tskUpdate.Status);
+
+                    if ((btLeDevInfo.tskUpdate.Status != TaskStatus.Canceled) &&
+                        (btLeDevInfo.tskUpdate.Status != TaskStatus.Faulted) &&
+                        (btLeDevInfo.tskUpdate.Status != TaskStatus.RanToCompletion))
+                    {
+                        bGo = false;
+
+                        if (s_Log) LogMessage("DEBUG -> WAITING FOR QueryBtLeDevice_Known_Async...");
+                    }
+                }
+
+                if (bGo)
+                {
+                    if (s_Log) LogMessage("DEBUG -> STARTING QueryBtLeDevice_Known_Async...");
+
+                    // BUG: Reported as Completed while NOT...
+                    //btLeDevInfo.tskUpdate = QueryBtLeDevice_Known_Async_Task(btLeDevInfo);
+
+                    // BUG: Reported as Completed while NOT...
+                    //btLeDevInfo.tskUpdate = Task.Run(() => QueryBtLeDevice_Known_Async(btLeDevInfo));
+
+                    // BUG: UI freez experienced...
+                    //btLeDevInfo.tskUpdate = QueryBtLeDevice_Known_Async(btLeDevInfo);
+
+                    // FIX: No UI freez!!!
+                    btLeDevInfo.tskUpdate = QueryBtLeDevice_Known_Async_Task2(btLeDevInfo);
+
+                    if (s_Log) LogMessage("DEBUG -> STARTED QueryBtLeDevice_Known_Async...");
+                }
             }
         }
 
@@ -297,15 +405,15 @@ namespace RscBtLeDevBattLvlMon
         */
         public async Task QueryBtLeDevice_Known_Async_Task2(BtLeDevInfo btLeDevInfoWhat)
         {
-            LogMessage("DEBUG -> Root Task - BEGIN");
+            if (s_Log) LogMessage("DEBUG -> Root Task - BEGIN");
 
             Task tsk = Task.Run(() => QueryBtLeDevice_Known_Async(btLeDevInfoWhat));
 
-            LogMessage("DEBUG -> Root Task - AWAIT");
+            if (s_Log) LogMessage("DEBUG -> Root Task - AWAIT");
 
             await tsk;
 
-            LogMessage("DEBUG -> Root Task - END");
+            if (s_Log) LogMessage("DEBUG -> Root Task - END");
         }
 
         public async Task QueryBtLeDevice_Known_Async(BtLeDevInfo btLeDevInfoWhat)
@@ -314,13 +422,13 @@ namespace RscBtLeDevBattLvlMon
             {
                 await BluetoothLEDevicesLock.WaitAsync();
 
-                LogMessage("---------------------- QueryBtLeDevice_Known");
+                if (s_Log) LogMessage("---------------------- QueryBtLeDevice_Known");
 
                 BtLeDevInfo btLeDevInfo = new BtLeDevInfo();
 
                 btLeDevInfo.Reason = BtLeDevInfo_Reason.QUERY;
 
-                LogMessage("Device ID: " + btLeDevInfoWhat.DeviceID);
+                if (s_Log) LogMessage("Device ID: " + btLeDevInfoWhat.DeviceID);
 
                 btLeDevInfo.DeviceID = btLeDevInfoWhat.DeviceID;
 
@@ -343,7 +451,7 @@ namespace RscBtLeDevBattLvlMon
                 var replace = "$1:$2:$3:$4:$5:$6";
                 var sDeviceAddress = Regex.Replace(tempMac, regex, replace);
 
-                LogMessage("Device Address: " + sDeviceAddress + " (ULONG: " + ulDeviceAddress + ")");
+                if (s_Log) LogMessage("Device Address: " + sDeviceAddress + " (ULONG: " + ulDeviceAddress + ")");
 
                 if (ulDeviceAddress != 0)
                 {
@@ -355,14 +463,14 @@ namespace RscBtLeDevBattLvlMon
                 bluetoothLeDevice.Dispose();
 
                 // DEBUG...
-                LogMessage("DEBUG -> await Task.Delay(8000);");
+                if (s_Log) LogMessage("DEBUG -> await Task.Delay(8000);");
                 await Task.Delay(8000);
 
                 UpdateDevice(btLeDevInfo);
             }
             catch (Exception ex)
             {
-                LogMessage("QueryBtLeDevice_Known - ERROR: " + ex.Message);
+                if (s_Log) LogMessage("QueryBtLeDevice_Known - ERROR: " + ex.Message);
             }
             finally
             {
@@ -372,11 +480,125 @@ namespace RscBtLeDevBattLvlMon
 
         private void btnTogleIcon_Click(object sender, EventArgs e)
         {
-            //TODO...
+            btnInfoBar.Visible = false;
+
+            if (lvDevices.Items.Count == 0)
+            {
+                NewMsg(true /*bError*/, "There are no discovered / preloaded Bluetooth LE Devices listed!");
+                return;
+            }
+
+            if (lvDevices.SelectedIndices.Count == 0)
+            {
+                NewMsg(true /*bError*/, "There are no selected Bluetooth LE Device!");
+                return;
+            }
+
+            BtLeDevInfo btLeDevInfo = m_aDevices[lvDevices.SelectedIndices[0]];
+
+            if (btLeDevInfo.BatteryLevel == 0)
+            {
+                NewMsg(true /*bError*/, "There are no Battery Service for selected Bluetooth LE Device!");
+                return;
+            }
+
+            if (btLeDevInfo.ShowNotifyIcon)
+            {
+                btLeDevInfo.ShowNotifyIcon = false;
+            }
+            else
+            {
+                btLeDevInfo.ShowNotifyIcon = true;
+            }
+
+            int iDevRegHit = -1;
+
+            int iDevRegCount = StorageRegistry.Read("Devices\\DeviceCount", 0);
+
+            // ATTN!
+            int iDevRegNextAvail = iDevRegCount;
+
+            for (int iDevReg = 0; iDevReg < iDevRegCount; iDevReg++)
+            {
+                string sMacAddress = StorageRegistry.Read("Devices\\Device" + iDevReg.ToString() + "\\MAC Address", "");
+
+                if (sMacAddress.Length == 0)
+                {
+                    iDevRegNextAvail = iDevReg;
+                }
+                else
+                {
+                    if (sMacAddress == btLeDevInfo.MacAddress)
+                    {
+                        iDevRegHit = iDevReg;
+                        break;
+                    }
+                }
+            }
+
+            if (iDevRegHit < 0)
+            {
+                iDevRegHit = iDevRegNextAvail;
+
+                if (iDevRegHit == iDevRegCount)
+                {
+                    iDevRegCount++;
+                    StorageRegistry.Write("Devices\\DeviceCount", iDevRegCount);
+                }
+            }
+
+            if (btLeDevInfo.ShowNotifyIcon)
+            {
+                StorageRegistry.Write("Devices\\Device" + iDevRegHit.ToString() + "\\MAC Address", btLeDevInfo.MacAddress);
+                StorageRegistry.Write("Devices\\Device" + iDevRegHit.ToString() + "\\Name", btLeDevInfo.Name);
+                StorageRegistry.Write("Devices\\Device" + iDevRegHit.ToString() + "\\Device ID", btLeDevInfo.DeviceID);
+                StorageRegistry.Write("Devices\\Device" + iDevRegHit.ToString() + "\\Service Count", btLeDevInfo.ServiceCount);
+                StorageRegistry.Write("Devices\\Device" + iDevRegHit.ToString() + "\\Battery Level", btLeDevInfo.BatteryLevel);
+                StorageRegistry.Write("Devices\\Device" + iDevRegHit.ToString() + "\\Show NotifyIcon", btLeDevInfo.ShowNotifyIcon);
+            }
+            else
+            {
+                StorageRegistry.DeleteValue("Devices\\Device" + iDevRegHit.ToString() + "\\MAC Address");
+                StorageRegistry.DeleteValue("Devices\\Device" + iDevRegHit.ToString() + "\\Name");
+                StorageRegistry.DeleteValue("Devices\\Device" + iDevRegHit.ToString() + "\\Device ID");
+                StorageRegistry.DeleteValue("Devices\\Device" + iDevRegHit.ToString() + "\\Service Count");
+                StorageRegistry.DeleteValue("Devices\\Device" + iDevRegHit.ToString() + "\\Battery Level");
+                StorageRegistry.DeleteValue("Devices\\Device" + iDevRegHit.ToString() + "\\Show NotifyIcon");
+
+                if (iDevRegHit == iDevRegCount - 1)
+                {
+                    iDevRegCount--;
+                    StorageRegistry.Write("Devices\\DeviceCount", iDevRegCount);
+
+                    StorageRegistry.DeleteSubKey("Devices\\Device" + iDevRegHit.ToString());
+                }
+            }
+
+            if (btLeDevInfo.ShowNotifyIcon)
+            {
+                RefreshNotifyIcon(btLeDevInfo);
+
+                BeginQueryBtLeDevice(btLeDevInfo);
+
+                if (!tmrUpdate.Enabled)
+                {
+                    tmrUpdate.Enabled = true;
+                }
+            }
+            else
+            {
+                HideNotifyIcon(btLeDevInfo);
+            }
         }
 
         private void RefreshNotifyIcon(BtLeDevInfo btLeDevInfo)
         {
+            if (!btLeDevInfo.ShowNotifyIcon)
+            {
+                // ATTN!
+                return;
+            }
+
             bool bJustCreated = false;
 
             if (btLeDevInfo.notifyIcon == null)
@@ -384,6 +606,8 @@ namespace RscBtLeDevBattLvlMon
                 bJustCreated = true;
 
                 btLeDevInfo.notifyIcon = new NotifyIcon();
+
+                btLeDevInfo.notifyIcon.Click += NotifyIcon_Click;
 
             }
 
@@ -419,7 +643,7 @@ namespace RscBtLeDevBattLvlMon
 
                 Color clrBk = Color.DodgerBlue;
                 int iCY = 2;
-                if (m_iAlertLevel >= 0 && btLeDevInfo.BatteryLevel < m_iAlertLevel)
+                if (m_iAlertLevel >= 0 && (btLeDevInfo.BatteryLevel >= 0 && btLeDevInfo.BatteryLevel < m_iAlertLevel))
                 {
                     iCY = 1;
                     clrBk = Color.Red;
@@ -473,6 +697,18 @@ namespace RscBtLeDevBattLvlMon
                     btLeDevInfo.notifyIcon.Visible = true;
                 }
 
+            }
+        }
+
+        private void NotifyIcon_Click(object sender, EventArgs e)
+        {
+            if (this.Visible)
+            {
+                this.Visible = false;
+            }
+            else
+            {
+                this.Visible = true;
             }
         }
 
@@ -536,7 +772,7 @@ namespace RscBtLeDevBattLvlMon
 
                             if (s_bCloseApp)
                             {
-                                LogMessage("DEBUG -> (CLOSING APP) DeviceWatcherStatus.Stopped...");
+                                if (s_Log) LogMessage("DEBUG -> (CLOSING APP) DeviceWatcherStatus.Stopped...");
                                 s_MainForm.Close();
                             }
 
@@ -614,6 +850,11 @@ namespace RscBtLeDevBattLvlMon
                         }
                         btLeDevInfoItem.LastError = btLeDevInfo.LastError; // Always overwrite!
 
+                        if (btLeDevInfo.Reason == BtLeDevInfo_Reason.QUERY)
+                        {
+                            btLeDevInfoItem.UpdateCount += 1;
+                        }
+
                         // ATTN!!!
                         btLeDevInfo = btLeDevInfoItem;
 
@@ -633,13 +874,20 @@ namespace RscBtLeDevBattLvlMon
                             sServiceCount = btLeDevInfo.ServiceCount.ToString();
                         }
 
+                        string sUpdateCount = "";
+                        if (btLeDevInfo.UpdateCount > 0)
+                        {
+                            sUpdateCount = btLeDevInfo.UpdateCount.ToString();
+                        }
+
                         s_MainForm.lvDevices.Items[iIdxItem].Text = sBatteryLevel;
                         s_MainForm.lvDevices.Items[iIdxItem].SubItems[1].Text = btLeDevInfo.Name;
                         s_MainForm.lvDevices.Items[iIdxItem].SubItems[2].Text = btLeDevInfo.StatusText;
                         s_MainForm.lvDevices.Items[iIdxItem].SubItems[3].Text = sServiceCount;
                         s_MainForm.lvDevices.Items[iIdxItem].SubItems[4].Text = btLeDevInfo.MacAddress;
-                        s_MainForm.lvDevices.Items[iIdxItem].SubItems[5].Text = btLeDevInfo.DeviceID;
-                        s_MainForm.lvDevices.Items[iIdxItem].SubItems[6].Text = btLeDevInfo.LastError;
+                        s_MainForm.lvDevices.Items[iIdxItem].SubItems[5].Text = sUpdateCount;
+                        s_MainForm.lvDevices.Items[iIdxItem].SubItems[6].Text = btLeDevInfo.DeviceID;
+                        s_MainForm.lvDevices.Items[iIdxItem].SubItems[7].Text = btLeDevInfo.LastError;
 
                         // TaskBar Notification Icon
                         if (btLeDevInfo.BatteryLevel != 0 && btLeDevInfo.NotifyIcon_UpdateRequired)
@@ -671,6 +919,12 @@ namespace RscBtLeDevBattLvlMon
                         sServiceCount = btLeDevInfo.ServiceCount.ToString();
                     }
 
+                    string sUpdateCount = "";
+                    if (btLeDevInfo.UpdateCount > 0)
+                    {
+                        sUpdateCount = btLeDevInfo.UpdateCount.ToString();
+                    }
+
                     s_MainForm.lvDevices.Items.Add(sBatteryLevel);
 
                     iIdxItem = s_MainForm.lvDevices.Items.Count - 1;
@@ -679,6 +933,7 @@ namespace RscBtLeDevBattLvlMon
                     s_MainForm.lvDevices.Items[iIdxItem].SubItems.Add(btLeDevInfo.StatusText);
                     s_MainForm.lvDevices.Items[iIdxItem].SubItems.Add(sServiceCount);
                     s_MainForm.lvDevices.Items[iIdxItem].SubItems.Add(btLeDevInfo.MacAddress);
+                    s_MainForm.lvDevices.Items[iIdxItem].SubItems.Add(sUpdateCount);
                     s_MainForm.lvDevices.Items[iIdxItem].SubItems.Add(btLeDevInfo.DeviceID);
                     s_MainForm.lvDevices.Items[iIdxItem].SubItems.Add(btLeDevInfo.LastError);
 
@@ -695,18 +950,13 @@ namespace RscBtLeDevBattLvlMon
 
                     if (btLeDevInfo.LastError.Length > 0)
                     {
+                        // ATTN!
+                        s_MainForm.Visible = true;
+
                         bColored = true;
 
                         s_MainForm.lvDevices.Items[iIdxItem].BackColor = Color.DarkRed;
                         s_MainForm.lvDevices.Items[iIdxItem].ForeColor = Color.White;
-                    }
-
-                    if ((!bColored) && (btLeDevInfo.Reason == BtLeDevInfo_Reason.QUERY))
-                    {
-                        bColored = true;
-
-                        s_MainForm.lvDevices.Items[iIdxItem].BackColor = Color.Yellow;
-                        s_MainForm.lvDevices.Items[iIdxItem].ForeColor = Color.Black;
                     }
 
                     if ((!bColored) && (btLeDevInfo.Reason != BtLeDevInfo_Reason.REMOVED)
@@ -722,6 +972,11 @@ namespace RscBtLeDevBattLvlMon
                     {
                         switch (btLeDevInfo.Reason)
                         {
+
+                            case BtLeDevInfo_Reason.PRELOADED:
+                                s_MainForm.lvDevices.Items[iIdxItem].BackColor = SystemColors.Info;
+                                s_MainForm.lvDevices.Items[iIdxItem].ForeColor = SystemColors.InfoText;
+                                break;
 
                             case BtLeDevInfo_Reason.ADDED:
                                 s_MainForm.lvDevices.Items[iIdxItem].BackColor = SystemColors.Window;
@@ -741,7 +996,7 @@ namespace RscBtLeDevBattLvlMon
                         // FIX(PROVEN): To avoid identifying as still running...
                         btLeDevInfo.tskUpdate = null;
 
-                        LogMessage("DEBUG -> (CLOSING APP) UpdateDevice...");
+                        if (s_Log) LogMessage("DEBUG -> (CLOSING APP) UpdateDevice...");
                         s_MainForm.Close();
                     }
 
@@ -756,14 +1011,17 @@ namespace RscBtLeDevBattLvlMon
                 (deviceWatcher.Status == DeviceWatcherStatus.Started ||
                  deviceWatcher.Status == DeviceWatcherStatus.EnumerationCompleted))
             {
+                NewMsg(false /*bError*/, "Stopping Device discovery...");
+
                 deviceWatcher.Stop();
             }
         }
 
         private void btnEnum_Click(object sender, EventArgs e)
         {
-            LogMessage(""); // Clears LOG...
             btnInfoBar.Visible = false;
+
+            if (s_Log) LogMessage(""); // Clears LOG...
 
             try
             {
@@ -779,9 +1037,9 @@ namespace RscBtLeDevBattLvlMon
 
                 var localAdapter = tsk.GetResults();
 
-                LogMessage("Low energy supported? -> " + localAdapter.IsLowEnergySupported);
-                LogMessage("Central role supported? -> " + localAdapter.IsCentralRoleSupported);
-                LogMessage("Pheripherial role supported? -> " + localAdapter.IsPeripheralRoleSupported);
+                if (s_Log) LogMessage("Low energy supported? -> " + localAdapter.IsLowEnergySupported);
+                if (s_Log) LogMessage("Central role supported? -> " + localAdapter.IsCentralRoleSupported);
+                if (s_Log) LogMessage("Pheripherial role supported? -> " + localAdapter.IsPeripheralRoleSupported);
 
                 if (!localAdapter.IsCentralRoleSupported)
                 {
@@ -891,7 +1149,7 @@ namespace RscBtLeDevBattLvlMon
         private /*async* void Watcher_Received(BluetoothLEAdvertisementWatcher sender,
                                            BluetoothLEAdvertisementReceivedEventArgs args)
         {
-            LogMessage("Bluetooth LE Device Advertisement Local Name -> " + args.Advertisement.LocalName);
+            if (s_Log) LogMessage("Bluetooth LE Device Advertisement Local Name -> " + args.Advertisement.LocalName);
   
             Windows.Foundation.IAsyncOperation<BluetoothLEDevice> tsk1;
 
@@ -904,10 +1162,10 @@ namespace RscBtLeDevBattLvlMon
 
             var bluetoothLeDevice = tsk1.GetResults();
 
-            LogMessage("                    Address -> " + args.BluetoothAddress);
-            LogMessage("          Connection Status -> " + bluetoothLeDevice.ConnectionStatus);
-            LogMessage("                       Name -> " + bluetoothLeDevice.Name);
-            LogMessage("                  Device ID -> " + bluetoothLeDevice.DeviceId);
+            if (s_Log) LogMessage("                    Address -> " + args.BluetoothAddress);
+            if (s_Log) LogMessage("          Connection Status -> " + bluetoothLeDevice.ConnectionStatus);
+            if (s_Log) LogMessage("                       Name -> " + bluetoothLeDevice.Name);
+            if (s_Log) LogMessage("                  Device ID -> " + bluetoothLeDevice.DeviceId);
 
             //
             ////
@@ -926,7 +1184,7 @@ namespace RscBtLeDevBattLvlMon
 
             foreach (var curService in gattServices.Services)
             {
-                LogMessage("  Service: " + curService.Uuid);
+                if (s_Log) LogMessage("  Service: " + curService.Uuid);
             }
 
             // TODO...
@@ -947,9 +1205,9 @@ namespace RscBtLeDevBattLvlMon
                 btLeDevInfo.isConnected = false;
             }
 
-            LogMessage("Connection Status: " + bluetoothLeDevice.ConnectionStatus);
-            LogMessage("Name: " + bluetoothLeDevice.Name);
-            LogMessage("Device ID: " + bluetoothLeDevice.DeviceId);
+            if (s_Log) LogMessage("Connection Status: " + bluetoothLeDevice.ConnectionStatus);
+            if (s_Log) LogMessage("Name: " + bluetoothLeDevice.Name);
+            if (s_Log) LogMessage("Device ID: " + bluetoothLeDevice.DeviceId);
 
             btLeDevInfo.DeviceID = bluetoothLeDevice.DeviceId;
 
@@ -968,7 +1226,7 @@ namespace RscBtLeDevBattLvlMon
 
             var gattServices = tsk2.GetResults();
 
-            LogMessage("Service Count: " + gattServices.Services.Count);
+            if (s_Log) LogMessage("Service Count: " + gattServices.Services.Count);
 
             btLeDevInfo.ServiceCount = gattServices.Services.Count;
 
@@ -976,14 +1234,14 @@ namespace RscBtLeDevBattLvlMon
 
             foreach (var curService in gattServices.Services)
             {
-                LogMessage(" - Service GUID: " + curService.Uuid);
+                if (s_Log) LogMessage(" - Service GUID: " + curService.Uuid);
 
                 /*
                 if (curService.Uuid.ToString().ToLower() == BatteryServiceGUID)
                 */
                 if (curService.Uuid.Equals(UuidBatteryService))
                 {
-                    LogMessage("   Battery Service!");
+                    if (s_Log) LogMessage("   Battery Service!");
 
                     try
                     {
@@ -999,12 +1257,12 @@ namespace RscBtLeDevBattLvlMon
 
                         var gattCharacteristics = tsk3.GetResults();
 
-                        LogMessage("   Characteristic Count: " + gattCharacteristics.Characteristics.Count);
+                        if (s_Log) LogMessage("   Characteristic Count: " + gattCharacteristics.Characteristics.Count);
 
                         foreach (var curCharacteristic in gattCharacteristics.Characteristics)
                         {
-                            LogMessage("   Characteristic Handle: " + curCharacteristic.AttributeHandle);
-                            LogMessage("   Characteristic GUID: " + curCharacteristic.Uuid);
+                            if (s_Log) LogMessage("   Characteristic Handle: " + curCharacteristic.AttributeHandle);
+                            if (s_Log) LogMessage("   Characteristic GUID: " + curCharacteristic.Uuid);
 
                             if (curCharacteristic.CharacteristicProperties.HasFlag(
                                 Windows.Devices.Bluetooth.GenericAttributeProfile.GattCharacteristicProperties.Read))
@@ -1024,9 +1282,9 @@ namespace RscBtLeDevBattLvlMon
                                 var input = new byte[reader.UnconsumedBufferLength];
                                 reader.ReadBytes(input);
 
-                                LogMessage("   Characteristic Value (HEX): 0x" + BitConverter.ToString(input));
+                                if (s_Log) LogMessage("   Characteristic Value (HEX): 0x" + BitConverter.ToString(input));
 
-                                LogMessage("   Characteristic Value (Dec):   " + input[0].ToString());
+                                if (s_Log) LogMessage("   Characteristic Value (Dec):   " + input[0].ToString());
 
                                 btLeDevInfo.BatteryLevel = (int)input[0];
                             }
@@ -1038,7 +1296,7 @@ namespace RscBtLeDevBattLvlMon
                         btLeDevInfo.BatteryLevel    = -1;
                         btLeDevInfo.LastError       = ex.Message;
 
-                        LogMessage("QueryBtLeDevice - ERROR: " + ex.Message);
+                        if (s_Log) LogMessage("QueryBtLeDevice - ERROR: " + ex.Message);
                     }
                 }
             }
@@ -1055,13 +1313,13 @@ namespace RscBtLeDevBattLvlMon
                 if (sender == deviceWatcher)
                 {
 
-                    LogMessage("---------------------- Device Watcher - ADDED");
+                    if (s_Log) LogMessage("---------------------- Device Watcher - ADDED");
 
                     BtLeDevInfo btLeDevInfo = new BtLeDevInfo();
 
                     btLeDevInfo.Reason = BtLeDevInfo_Reason.ADDED;
 
-                    LogMessage("Device Name: " + deviceInfo.Name);
+                    if (s_Log) LogMessage("Device Name: " + deviceInfo.Name);
 
                     btLeDevInfo.Name = deviceInfo.Name;
 
@@ -1074,9 +1332,9 @@ namespace RscBtLeDevBattLvlMon
                     btLeDevInfo.isPaired = ((deviceInfo.Properties.Keys.Contains("System.Devices.Aep.IsPaired") &&
                             (bool)deviceInfo.Properties["System.Devices.Aep.IsPaired"]));
 
-                    LogMessage("Is Connectible: " + btLeDevInfo.isConnectible);
-                    LogMessage("Is Connected: " + btLeDevInfo.isConnected);
-                    LogMessage("Is Paired: " + btLeDevInfo.isPaired);
+                    if (s_Log) LogMessage("Is Connectible: " + btLeDevInfo.isConnectible);
+                    if (s_Log) LogMessage("Is Connected: " + btLeDevInfo.isConnected);
+                    if (s_Log) LogMessage("Is Paired: " + btLeDevInfo.isPaired);
 
                     // Let's make it connectable by default, we have error handles in case it doesn't work
                     bool shouldDisplay =
@@ -1093,7 +1351,7 @@ namespace RscBtLeDevBattLvlMon
                             sDeviceAddress = deviceInfo.Properties["System.Devices.Aep.DeviceAddress"].ToString();
                             btLeDevInfo.MacAddressUlong = Convert.ToUInt64(sDeviceAddress.Replace(":", String.Empty), 16);
                         }
-                        LogMessage("Device Address: " + sDeviceAddress + " (ULONG: " + btLeDevInfo.MacAddressUlong + ")");
+                        if (s_Log) LogMessage("Device Address: " + sDeviceAddress + " (ULONG: " + btLeDevInfo.MacAddressUlong + ")");
 
                         if (btLeDevInfo.MacAddressUlong != 0)
                         {
@@ -1122,7 +1380,7 @@ namespace RscBtLeDevBattLvlMon
             }
             catch (Exception ex)
             {
-                LogMessage("DeviceWatcher_Added - ERROR: " + ex.Message);
+                if (s_Log) LogMessage("DeviceWatcher_Added - ERROR: " + ex.Message);
             }
             finally
             {
@@ -1142,15 +1400,15 @@ namespace RscBtLeDevBattLvlMon
 
                     // NOTE: Too many calls!
                     /*
-                    LogMessage("---------------------- Device Watcher - UPDATED");
-                    LogMessage("  DeviceWatcher_Updated - Device Id: " + deviceInfoUpdate.Id);
+                    if (s_Log) LogMessage("---------------------- Device Watcher - UPDATED");
+                    if (s_Log) LogMessage("  DeviceWatcher_Updated - Device Id: " + deviceInfoUpdate.Id);
                     */
 
                 }
             }
             catch (Exception ex)
             {
-                LogMessage("DeviceWatcher_Updated - ERROR: " + ex.Message);
+                if (s_Log) LogMessage("DeviceWatcher_Updated - ERROR: " + ex.Message);
             }
             finally
             {
@@ -1168,13 +1426,13 @@ namespace RscBtLeDevBattLvlMon
                 if (sender == deviceWatcher)
                 {
 
-                    LogMessage("---------------------- Device Watcher - REMOVED");
+                    if (s_Log) LogMessage("---------------------- Device Watcher - REMOVED");
 
                     BtLeDevInfo btLeDevInfo = new BtLeDevInfo();
 
                     btLeDevInfo.Reason = BtLeDevInfo_Reason.REMOVED;
 
-                    LogMessage("Device ID: " + deviceInfoUpdate.Id);
+                    if (s_Log) LogMessage("Device ID: " + deviceInfoUpdate.Id);
 
                     btLeDevInfo.DeviceID = deviceInfoUpdate.Id;
 
@@ -1197,7 +1455,7 @@ namespace RscBtLeDevBattLvlMon
                     var replace = "$1:$2:$3:$4:$5:$6";
                     var sDeviceAddress = Regex.Replace(tempMac, regex, replace);
 
-                    LogMessage("Device Address: " + sDeviceAddress + " (ULONG: " + ulDeviceAddress + ")");
+                    if (s_Log) LogMessage("Device Address: " + sDeviceAddress + " (ULONG: " + ulDeviceAddress + ")");
 
                     if (ulDeviceAddress != 0)
                     {
@@ -1213,7 +1471,7 @@ namespace RscBtLeDevBattLvlMon
             }
             catch (Exception ex)
             {
-                LogMessage("DeviceWatcher_Removed - ERROR: " + ex.Message);
+                if (s_Log) LogMessage("DeviceWatcher_Removed - ERROR: " + ex.Message);
             }
             finally
             {
@@ -1231,7 +1489,7 @@ namespace RscBtLeDevBattLvlMon
                 if (sender == deviceWatcher)
                 {
 
-                    LogMessage("---------------------- Device Watcher - ENUMERATION COMPLETED");
+                    if (s_Log) LogMessage("---------------------- Device Watcher - ENUMERATION COMPLETED");
 
                     WatcherStatusChanged();
 
@@ -1239,7 +1497,7 @@ namespace RscBtLeDevBattLvlMon
             }
             catch (Exception ex)
             {
-                LogMessage("DeviceWatcher_EnumerationCompleted - ERROR: " + ex.Message);
+                if (s_Log) LogMessage("DeviceWatcher_EnumerationCompleted - ERROR: " + ex.Message);
             }
             finally
             {
@@ -1257,7 +1515,7 @@ namespace RscBtLeDevBattLvlMon
                 if (sender == deviceWatcher)
                 {
 
-                    LogMessage("---------------------- Device Watcher - STOPPED");
+                    if (s_Log) LogMessage("---------------------- Device Watcher - STOPPED");
 
                     WatcherStatusChanged();
 
@@ -1265,7 +1523,7 @@ namespace RscBtLeDevBattLvlMon
             }
             catch (Exception ex)
             {
-                LogMessage("DeviceWatcher_Removed - ERROR: " + ex.Message);
+                if (s_Log) LogMessage("DeviceWatcher_Removed - ERROR: " + ex.Message);
             }
             finally
             {
@@ -1292,14 +1550,44 @@ namespace RscBtLeDevBattLvlMon
             }
         }
 
+        private void chbLog_CheckedChanged(object sender, EventArgs e)
+        {
+            if (chbLog.Checked)
+            {
+                s_Log = true;
+                if (s_Log) LogMessage("LOG STARTED...");
+
+                // TODO...
+            }
+            else
+            {
+                s_Log = false;
+
+                // TODO...
+            }
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == 17 /*WM_QUERYENDSESSION*/)
+            {
+                if (!this.Visible)
+                {
+                    this.Visible = true;
+                }
+            }
+
+            base.WndProc(ref m);
+        }
     }
 
     public enum BtLeDevInfo_Reason
     {
         NA = 0,
-        ADDED = 1,
-        REMOVED = 2,
-        QUERY = 4
+        PRELOADED = 1,
+        ADDED = 2,
+        REMOVED = 4,
+        QUERY = 8
     }
 
     public class BtLeDevInfo
@@ -1366,6 +1654,11 @@ namespace RscBtLeDevBattLvlMon
         {
             get
             {
+                if (Reason == BtLeDevInfo_Reason.PRELOADED)
+                {
+                    return "";
+                }
+
                 string sStatus;
 
                 if (isPaired)
@@ -1415,6 +1708,12 @@ namespace RscBtLeDevBattLvlMon
             set;
         }
 
+        public bool ShowNotifyIcon
+        {
+            get;
+            set;
+        }
+
         public NotifyIcon notifyIcon
         {
             get;
@@ -1428,6 +1727,12 @@ namespace RscBtLeDevBattLvlMon
         }
 
         public Task tskUpdate
+        {
+            get;
+            set;
+        }
+
+        public int UpdateCount
         {
             get;
             set;
