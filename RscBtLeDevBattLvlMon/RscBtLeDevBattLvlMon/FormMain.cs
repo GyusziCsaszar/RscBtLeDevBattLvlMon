@@ -95,6 +95,11 @@ namespace RscBtLeDevBattLvlMon
 
             if (!e.Cancel)
             {
+                if (m_NotifyIcon != null && m_NotifyIcon.Visible)
+                {
+                    m_NotifyIcon.Visible = false;
+                }
+
                 // TODO...
             }
         }
@@ -114,14 +119,23 @@ namespace RscBtLeDevBattLvlMon
                 // SRC: https://stackoverflow.com/questions/34075264/i-want-to-display-numbers-on-the-system-tray-notification-icons-on-windows
                 Brush brush = new SolidBrush(Color.White);
                 Brush brushBk = new SolidBrush(Color.DodgerBlue);
+                Pen penBk = new Pen(Color.DodgerBlue);
                 // Create a bitmap and draw text on it
                 Bitmap bitmap = new Bitmap(24, 24); // 32, 32); // 16, 16);
                 Graphics graphics = Graphics.FromImage(bitmap);
                 //graphics.DrawRectangle(new Pen(Color.Red), new Rectangle(0, 0, 23, 23));
                 graphics.FillEllipse(brushBk, new Rectangle(3, 0, 23 - 4, 23 - 12));
-                graphics.DrawEllipse(new Pen(Color.DodgerBlue), new Rectangle(3, 0, 23 - 4, 23 - 12));
-                Font font = new Font("Tahoma", 13); // 18);
-                graphics.DrawString("99", font, brush, 2, 4);
+                graphics.DrawEllipse(penBk, new Rectangle(3, 0, 23 - 4, 23 - 12));
+                graphics.FillEllipse(brushBk, new Rectangle(3, 12, 23 - 4, 23 - 12));
+                graphics.DrawEllipse(penBk, new Rectangle(3, 12, 23 - 4, 23 - 12));
+                /*
+                graphics.FillRectangle(brushBk, new Rectangle(3, 6, 23 - 5, 23 - 10));
+                graphics.DrawRectangle(penBk, new Rectangle(3, 6, 23 - 5, 23 - 10));
+                */
+                graphics.FillRectangle(brushBk, new Rectangle(1, 6, 23 - 1, 23 - 10));
+                graphics.DrawRectangle(penBk, new Rectangle(1, 6, 23 - 1, 23 - 10));
+                Font font = new Font("Tahoma", 14); // 18);
+                graphics.DrawString("99", font, brush, 0, 2);
                 // Convert the bitmap with text to an Icon
                 m_NotifyIcon.Icon = Icon.FromHandle(bitmap.GetHicon());
 
@@ -237,10 +251,16 @@ namespace RscBtLeDevBattLvlMon
                             sBatteryLevel = btLeDevInfo.BatteryLevel.ToString() + " %";
                         }
 
+                        string sServiceCount = "";
+                        if (btLeDevInfo.ServiceCount > 0)
+                        {
+                            sServiceCount = btLeDevInfo.ServiceCount.ToString();
+                        }
+
                         s_MainForm.lvDevices.Items[iIdxItem].Text = sBatteryLevel;
                         s_MainForm.lvDevices.Items[iIdxItem].SubItems[1].Text = btLeDevInfo.Name;
                         s_MainForm.lvDevices.Items[iIdxItem].SubItems[2].Text = btLeDevInfo.StatusText;
-                        s_MainForm.lvDevices.Items[iIdxItem].SubItems[3].Text = btLeDevInfo.ServiceCount.ToString();
+                        s_MainForm.lvDevices.Items[iIdxItem].SubItems[3].Text = sServiceCount;
                         s_MainForm.lvDevices.Items[iIdxItem].SubItems[4].Text = btLeDevInfo.MacAddress;
 
                         break;
@@ -257,13 +277,19 @@ namespace RscBtLeDevBattLvlMon
                         sBatteryLevel = btLeDevInfo.BatteryLevel.ToString() + " %";
                     }
 
+                    string sServiceCount = "";
+                    if (btLeDevInfo.ServiceCount > 0)
+                    {
+                        sServiceCount = btLeDevInfo.ServiceCount.ToString();
+                    }
+
                     s_MainForm.lvDevices.Items.Add(sBatteryLevel);
 
                     iIdxItem = s_MainForm.lvDevices.Items.Count - 1;
 
                     s_MainForm.lvDevices.Items[iIdxItem].SubItems.Add(btLeDevInfo.Name);
                     s_MainForm.lvDevices.Items[iIdxItem].SubItems.Add(btLeDevInfo.StatusText);
-                    s_MainForm.lvDevices.Items[iIdxItem].SubItems.Add(btLeDevInfo.ServiceCount.ToString());
+                    s_MainForm.lvDevices.Items[iIdxItem].SubItems.Add(sServiceCount);
                     s_MainForm.lvDevices.Items[iIdxItem].SubItems.Add(btLeDevInfo.MacAddress);
                 }
 

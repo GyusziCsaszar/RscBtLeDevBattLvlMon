@@ -73,6 +73,7 @@
             // 
             this.lvDevices.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.lvDevices.FullRowSelect = true;
             this.lvDevices.HideSelection = false;
             this.lvDevices.Location = new System.Drawing.Point(12, 56);
             this.lvDevices.Name = "lvDevices";
@@ -84,6 +85,8 @@
             // chbAutoStopOnEnumComp
             // 
             this.chbAutoStopOnEnumComp.AutoSize = true;
+            this.chbAutoStopOnEnumComp.Checked = true;
+            this.chbAutoStopOnEnumComp.CheckState = System.Windows.Forms.CheckState.Checked;
             this.chbAutoStopOnEnumComp.Location = new System.Drawing.Point(232, 15);
             this.chbAutoStopOnEnumComp.Name = "chbAutoStopOnEnumComp";
             this.chbAutoStopOnEnumComp.RightToLeft = System.Windows.Forms.RightToLeft.No;
